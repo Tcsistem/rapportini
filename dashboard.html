@@ -3,795 +3,214 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Supervisore — Rapportini di Lavoro</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<title>Dashboard Responsabile</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-:root {
-  --bg: #f5f4f0;
-  --surface: #ffffff;
-  --surface2: #f0efe9;
-  --border: #e0dfd8;
-  --border2: #cccbc2;
-  --text: #1a1a18;
-  --text2: #6b6a62;
-  --text3: #9b9a92;
-  --green: #2d6a2d;
-  --green-bg: #e8f4e8;
-  --amber: #7a4f00;
-  --amber-bg: #fdf3dc;
-  --blue: #1a4a7a;
-  --blue-bg: #e8f0fa;
-  --red: #7a1a1a;
-  --red-bg: #fae8e8;
-  --radius: 10px;
-  --radius-sm: 6px;
-  --font: 'DM Sans', sans-serif;
-  --mono: 'DM Mono', monospace;
-  --sidebar: 260px;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 15px; min-height: 100vh; }
-
-/* LAYOUT */
-.layout { display: grid; grid-template-columns: var(--sidebar) 1fr; min-height: 100vh; }
-
-/* SIDEBAR */
-.sidebar {
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  padding: 24px 16px;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-.sidebar-brand { font-size: 16px; font-weight: 500; padding: 0 4px; }
-.sidebar-brand span { display: block; font-size: 12px; font-weight: 400; color: var(--text2); margin-top: 2px; }
-
-.filter-group { display: flex; flex-direction: column; gap: 8px; }
-.filter-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text2); padding: 0 4px; }
-input, select { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 11px; font-size: 14px; font-family: var(--font); background: var(--surface); color: var(--text); -webkit-appearance: none; }
-input:focus, select:focus { outline: none; border-color: var(--text); }
-select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6a62' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 30px;
-}
-
-.btn { border-radius: var(--radius-sm); padding: 10px 16px; font-size: 14px; font-weight: 500; font-family: var(--font); cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text); width: 100%; text-align: center; }
-.btn:hover { background: var(--surface2); }
-.btn:active { opacity: 0.75; }
-.btn-primary { background: var(--text); color: white; border-color: var(--text); }
-.btn-primary:hover { opacity: 0.88; background: var(--text); }
-.btn-nas { background: var(--blue-bg); color: var(--blue); border-color: #b8ceee; }
-.btn-nas:hover { background: #d4e4f6; }
-.btn-green { background: var(--green-bg); color: var(--green); border-color: #b8ddb8; }
-.btn-green:hover { background: #d0ecd0; }
-.btn-sm { padding: 7px 14px; font-size: 13px; width: auto; }
-
-.sidebar-actions { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
-
-/* MAIN */
-.main { padding: 28px 32px; overflow-x: auto; }
-
-/* HEADER */
-.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; gap: 16px; flex-wrap: wrap; }
-.page-title { font-size: 22px; font-weight: 500; letter-spacing: -0.4px; }
-.header-actions { display: flex; gap: 8px; }
-
-/* KPI CARDS */
-.kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
-.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
-.kpi-label { font-size: 12px; color: var(--text2); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
-.kpi-value { font-size: 26px; font-weight: 500; letter-spacing: -0.5px; }
-.kpi-sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
-
-/* TABELLA */
-.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-.table-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); gap: 12px; flex-wrap: wrap; }
-.table-info { font-size: 13px; color: var(--text2); }
-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-thead th { text-align: left; padding: 11px 14px; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text2); background: var(--surface2); border-bottom: 1px solid var(--border); white-space: nowrap; cursor: pointer; user-select: none; }
-thead th:hover { color: var(--text); }
-thead th .sort-icon { margin-left: 4px; opacity: 0.4; }
-thead th.sorted .sort-icon { opacity: 1; }
-tbody tr { border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
-tbody tr:last-child { border-bottom: none; }
-tbody tr:hover { background: var(--surface2); }
-tbody td { padding: 11px 14px; color: var(--text); vertical-align: middle; }
-.td-num { font-family: var(--mono); font-size: 13px; color: var(--text2); }
-.td-right { text-align: right; font-family: var(--mono); font-size: 13px; }
-.td-bold { font-weight: 500; }
-
-/* BADGE */
-.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
-.b-ok { background: var(--green-bg); color: var(--green); }
-.b-bozza { background: var(--amber-bg); color: var(--amber); }
-
-/* ALERT */
-.alert { padding: 12px 16px; border-radius: var(--radius-sm); font-size: 14px; margin-bottom: 16px; display: none; border: 1px solid transparent; }
-.alert.show { display: block; }
-.alert-ok { background: var(--green-bg); color: var(--green); border-color: #b8ddb8; }
-.alert-err { background: var(--red-bg); color: var(--red); border-color: #e8b8b8; }
-.alert-info { background: var(--blue-bg); color: var(--blue); border-color: #b8ceee; }
-
-/* MODALE */
-.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; overflow-y: auto; padding: 40px 24px; }
-.overlay.open { display: block; }
-.modal { max-width: 760px; margin: 0 auto; background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
-.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--border); gap: 12px; }
-.modal-title { font-size: 16px; font-weight: 500; }
-.modal-actions { display: flex; gap: 8px; }
-.modal-body { padding: 24px; }
-
-/* PRINT STYLES */
-.print-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2px solid var(--text); }
-.print-azienda { font-size: 19px; font-weight: 500; }
-.print-sub { font-size: 13px; color: var(--text2); margin-top: 3px; }
-.print-meta { text-align: right; font-size: 13px; color: var(--text2); }
-.print-meta strong { display: block; font-size: 17px; font-weight: 500; color: var(--text); }
-.print-info { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 18px; }
-.print-cell { font-size: 12px; color: var(--text2); }
-.print-cell strong { display: block; font-size: 14px; color: var(--text); font-weight: 500; margin-top: 2px; }
-.print-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 14px 0; }
-.print-table th { text-align: left; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text2); padding: 8px 0; border-bottom: 1px solid var(--border2); }
-.print-table td { padding: 8px 0; border-bottom: 1px solid var(--border); }
-.print-table tr:last-child td { border-bottom: none; }
-.print-tot { display: flex; justify-content: flex-end; gap: 24px; padding: 12px 0; border-top: 1px solid var(--border2); font-size: 13px; color: var(--text2); }
-.print-tot .big { font-size: 18px; font-weight: 500; color: var(--text); }
-.print-note { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; margin-top: 12px; }
-.print-note strong { display: block; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-bottom: 5px; }
-.print-firme { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; }
-.print-firma-box { border-top: 1px solid var(--border2); padding-top: 8px; font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
-
-.empty { text-align: center; padding: 48px 24px; color: var(--text3); font-size: 14px; }
-
-/* PRINT MEDIA */
-@media print {
-  .sidebar, .page-header .header-actions, .table-wrap, .kpi-grid, .overlay .modal-head .modal-actions { display: none !important; }
-  .layout { display: block; }
-  .main { padding: 0; }
-  .modal { border: none; box-shadow: none; }
-  .overlay { display: block !important; position: static; padding: 0; }
-  .modal-head { display: none; }
-  body { background: white; }
-}
-
-/* LOGIN */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+:root{--bg:#f5f4f0;--surface:#fff;--surface2:#f0efe9;--surface3:#e8e7e0;--border:#e0dfd8;--border2:#cccbc2;--text:#1a1a18;--text2:#6b6a62;--text3:#9b9a92;--font:'IBM Plex Sans',sans-serif;--mono:'IBM Plex Mono',monospace;--radius:8px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+.login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999}
+.login-box{width:100%;max-width:380px;padding:48px 40px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.login-logo{font-family:var(--mono);font-size:11px;color:var(--text2);letter-spacing:.15em;text-transform:uppercase;margin-bottom:32px}
+.login-title{font-size:22px;font-weight:600;margin-bottom:6px}
+.login-sub{font-size:13px;color:var(--text2);margin-bottom:32px}
+.login-box input{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:13px 16px;font-size:15px;font-family:var(--font);color:var(--text);margin-bottom:12px;transition:border-color .15s}
+.login-box input:focus{outline:none;border-color:var(--text)}
+.login-box button{width:100%;background:var(--text);color:#fff;border:none;border-radius:var(--radius);padding:13px;font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer}
+.login-box button:hover{opacity:.88}
+.login-err{font-size:12px;color:#7a1a1a;margin-top:10px;display:none}
+.login-err.show{display:block}
+.app{display:none}.app.visible{display:block}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-brand{font-family:var(--mono);font-size:13px;color:var(--text2)}
+.topbar-brand strong{color:var(--text);font-weight:600}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--border2)}
+.conn-dot.ok{background:#3a8c3a}.conn-dot.err{background:#c0392b}
+.conn-dot.spin{background:#c07000;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.topbar-lbl{font-size:12px;color:var(--text2);font-family:var(--mono)}
+.main{max-width:1280px;margin:0 auto;padding:28px 24px}
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);align-items:flex-end}
+.filter-group{display:flex;flex-direction:column;gap:5px;flex:1;min-width:130px}
+.filter-group label{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--text3)}
+.filter-group input,.filter-group select{background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:9px 12px;font-size:13px;font-family:var(--font);color:var(--text);-webkit-appearance:none;transition:border-color .15s}
+.filter-group input:focus,.filter-group select:focus{outline:none;border-color:var(--text)}
+.btn{border-radius:6px;padding:9px 18px;font-size:13px;font-weight:500;font-family:var(--font);cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text);white-space:nowrap;transition:all .15s}
+.btn:hover{background:var(--surface3)}
+.btn-accent{background:var(--text);color:#fff;border-color:var(--text)}
+.btn-accent:hover{opacity:.88}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;position:relative;overflow:hidden}
+.kpi-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px}
+.kpi-card.k1::before{background:#3a8c3a}.kpi-card.k2::before{background:#1a4a7a}
+.kpi-card.k3::before{background:#c07000}.kpi-card.k4::before{background:#c0392b}
+.kpi-label{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:10px}
+.kpi-val{font-size:32px;font-weight:300;letter-spacing:-.5px;line-height:1;margin-bottom:6px}
+.kpi-card.k1 .kpi-val{color:#2d6a2d}.kpi-card.k2 .kpi-val{color:#1a4a7a}
+.kpi-card.k3 .kpi-val{color:#c07000}.kpi-card.k4 .kpi-val{color:#c0392b}
+.kpi-sub{font-size:12px;color:var(--text2)}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px}
+@media(max-width:1000px){.charts-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.charts-grid{grid-template-columns:1fr}}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px}
+.chart-title{font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:16px}
+.chart-wrap{position:relative;height:200px}
+.table-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.table-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);gap:12px;flex-wrap:wrap}
+.table-head-title{font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--text3)}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--text3);padding:10px 16px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:12px 16px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-family:var(--mono)}
+.b-ok{background:#e8f4e8;color:#2d6a2d;border:1px solid #b8ddb8}
+.b-mid{background:#fdf3dc;color:#7a4f00;border:1px solid #e8d8a8}
+.b-low{background:#f0efe9;color:#6b6a62;border:1px solid #e0dfd8}
+.empty-table{text-align:center;padding:60px 20px;color:var(--text3);font-family:var(--mono);font-size:13px}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;overflow-y:auto;padding:24px}
+.overlay.open{display:block}
+.modal{max-width:820px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;gap:12px;flex-wrap:wrap}
+.modal-title{font-size:15px;font-weight:600}
+.modal-num{font-family:var(--mono);font-size:12px;color:var(--text2);margin-bottom:4px}
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+@media(max-width:600px){.info-grid{grid-template-columns:1fr 1fr}}
+.info-cell{font-size:11px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em}
+.info-cell strong{display:block;font-size:13px;color:var(--text);font-weight:500;margin-top:4px;font-family:var(--font);text-transform:none;letter-spacing:0}
+.sec-title{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.modal-section{margin-bottom:18px}
+.modal table{font-size:13px}
+.modal th{font-size:10px;padding:7px 12px}
+.modal td{padding:9px 12px}
+.note-box{background:var(--surface2);border-radius:6px;padding:12px 14px;font-size:13px;color:var(--text);line-height:1.6;border:1px solid var(--border)}
+.tot-row{display:flex;gap:24px;justify-content:flex-end;padding:10px 12px 0;font-size:13px;color:var(--text2);border-top:1px solid var(--border);margin-top:4px}
+.tot-row strong{color:#1a4a7a;font-weight:500}
+.alert{padding:12px 16px;border-radius:6px;font-size:13px;margin-bottom:20px;display:none}
+.alert.show{display:block}
+.alert-err{background:#fae8e8;color:#7a1a1a;border:1px solid #e8b8b8}
+.alert-ok{background:#e8f4e8;color:#2d6a2d;border:1px solid #b8ddb8}
+@media print{.topbar,.filter-bar,.kpi-grid,.charts-grid,.table-card,.overlay,.login-screen,#alert{display:none!important}.modal{box-shadow:none;border:none;max-width:100%;padding:0}body{background:#fff}}
 </style>
 </head>
 <body>
-
-
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">&#9672; Rapportini</div>
+    <div class="login-title">Dashboard responsabile</div>
+    <div class="login-sub">Accesso riservato al supervisore</div>
+    <input type="password" id="pwd" placeholder="Password">
+    <button onclick="doLogin()">Accedi</button>
+    <div class="login-err" id="pwd-err">Password non corretta.</div>
   </div>
 </div>
-
-<div class="layout">
-
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div>
-      <div class="sidebar-brand">Supervisore<span>Rapportini di lavoro</span></div>
+<div class="app" id="app">
+  <div class="topbar">
+    <div class="topbar-brand">&#9672; <strong>Dashboard</strong> Responsabile</div>
+    <div class="topbar-right">
+      <div class="conn-dot" id="conn-dot"></div>
+      <span class="topbar-lbl" id="conn-lbl">&#8212;</span>
+      <span class="topbar-lbl" id="refresh-countdown" style="color:var(--text3)"></span>
+      <button class="btn" style="padding:5px 12px;font-size:12px" onclick="caricaDati()">&#8635;</button>
     </div>
-
-    <div class="filter-group">
-      <div class="filter-label">Periodo</div>
-      <input type="month" id="f-da" title="Da mese">
-      <input type="month" id="f-a" title="A mese">
-    </div>
-
-    <div class="filter-group">
-      <div class="filter-label">Tecnico</div>
-      <select id="f-tecnico">
-        <option value="">Tutti i tecnici</option>
-      </select>
-    </div>
-
-    <div class="filter-group">
-      <div class="filter-label">Cliente</div>
-      <input type="text" id="f-cliente" placeholder="Cerca cliente...">
-    </div>
-
-    <div class="filter-group">
-      <div class="filter-label">N. Commessa</div>
-      <input type="text" id="f-commessa" placeholder="N. commessa...">
-    </div>
-
-    <div class="filter-group">
-      <div class="filter-label">Stato</div>
-      <select id="f-stato">
-        <option value="">Tutti</option>
-        <option value="completato">Completato</option>
-        <option value="bozza">Bozza</option>
-      </select>
-    </div>
-
-    <div class="filter-group">
-      <div class="filter-label">Tipo intervento</div>
-      <select id="f-tipo">
-        <option value="">Tutti</option>
-        <option>Manutenzione ordinaria</option>
-        <option>Manutenzione straordinaria</option>
-        <option>Installazione</option>
-        <option>Riparazione</option>
-        <option>Collaudo</option>
-        <option>Ispezione</option>
-        <option>Altro</option>
-      </select>
-    </div>
-
-    <div class="filter-group">
-      <div class="filter-label" style="display:flex;align-items:center;justify-content:space-between">
-        <span>Google Drive</span>
-        <button id="url-lock-btn" onclick="sbloccaUrl()" style="background:none;border:none;font-size:12px;color:var(--blue);cursor:pointer;font-family:inherit;padding:0">&#128274; Modifica</button>
+  </div>
+  <div class="main">
+    <div class="alert" id="alert"></div>
+    <div class="filter-bar">
+      <div class="filter-group" style="flex:none;min-width:110px"><label>Da</label><input type="date" id="f-da"></div>
+      <div class="filter-group" style="flex:none;min-width:110px"><label>A</label><input type="date" id="f-a"></div>
+      <div class="filter-group"><label>Tecnico</label><input type="text" id="f-tecnico" placeholder="Tutti..."></div>
+      <div class="filter-group"><label>Cliente</label><input type="text" id="f-cliente" placeholder="Tutti..."></div>
+      <div class="filter-group"><label>Commessa</label><input type="text" id="f-commessa" placeholder="Tutti..."></div>
+      <div class="filter-group" style="flex:none;min-width:130px"><label>Stato</label>
+        <select id="f-stato"><option value="">Tutti</option><option value="100">Completati</option><option value="&lt;100">In corso</option></select>
       </div>
-      <input type="text" id="s-script-url-display" value="Script configurato" readonly
-        style="font-size:12px;background:#f0efe9;color:#6b6a62;cursor:not-allowed">
-      <div id="url-edit-box" style="display:none;margin-top:8px">
-        <input type="password" id="url-admin-pass" placeholder="Password admin..." style="font-size:13px;margin-bottom:6px" onkeydown="if(event.key==='Enter')confermaUrl()">
-        <input type="text" id="url-nuovo" placeholder="Nuovo URL script..." style="font-size:12px;margin-bottom:6px">
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-primary" style="flex:1;padding:8px;font-size:13px" onclick="confermaUrl()">Salva</button>
-          <button class="btn" style="padding:8px 12px;font-size:13px" onclick="chiudiUrlEdit()">Annulla</button>
-        </div>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <button class="btn" onclick="aggiornaFiltri()">Filtra</button>
+        <button class="btn" onclick="resetFiltri()">Reset</button>
+        <button class="btn btn-accent" onclick="caricaDati()">Aggiorna</button>
       </div>
     </div>
-
-    <div class="sidebar-actions">
-      <button class="btn btn-primary" onclick="appliFiltri()">Applica filtri</button>
-      <button class="btn" onclick="resetFiltri()">Azzera filtri</button>
-      <button class="btn btn-nas" onclick="caricaDati()">Aggiorna da Drive</button>
-    </div>
-  </aside>
-
-  <!-- MAIN -->
-  <main class="main">
-    <div id="alert" class="alert"></div>
-
-    <div class="page-header">
-      <div class="page-title">Archivio rapportini</div>
-      <div class="header-actions">
-        <button class="btn btn-green btn-sm" onclick="esportaExcelRiepilogativo()">Esporta Excel riepilogativo</button>
-        <button class="btn btn-sm" onclick="caricaDati()">↻ Aggiorna</button>
-      </div>
-    </div>
-
-    <!-- KPI -->
     <div class="kpi-grid">
-      <div class="kpi">
-        <div class="kpi-label">Rapportini</div>
-        <div class="kpi-value" id="kpi-count">—</div>
-        <div class="kpi-sub" id="kpi-count-sub">in caricamento</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Ore viaggio totali</div>
-        <div class="kpi-value" id="kpi-ore-viag">—</div>
-        <div class="kpi-sub">ore viaggio</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Ore straordinario</div>
-        <div class="kpi-value" id="kpi-ore-str">—</div>
-        <div class="kpi-sub">ore straordinario</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Ore lavoro totali</div>
-        <div class="kpi-value" id="kpi-ore-lav">—</div>
-        <div class="kpi-sub">ore lavorate</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Tecnici attivi</div>
-        <div class="kpi-value" id="kpi-tecnici">—</div>
-        <div class="kpi-sub" id="kpi-tecnici-sub">nel periodo</div>
-      </div>
+      <div class="kpi-card k1"><div class="kpi-label">Rapportini</div><div class="kpi-val" id="kpi-tot">&#8212;</div><div class="kpi-sub" id="kpi-tot-sub">&#8212;</div></div>
+      <div class="kpi-card k2"><div class="kpi-label">Ore lavoro</div><div class="kpi-val" id="kpi-lav">&#8212;</div><div class="kpi-sub" id="kpi-lav-sub">&#8212;</div></div>
+      <div class="kpi-card k3"><div class="kpi-label">Ore viaggio</div><div class="kpi-val" id="kpi-viag">&#8212;</div><div class="kpi-sub" id="kpi-viag-sub">&#8212;</div></div>
+      <div class="kpi-card k4"><div class="kpi-label">Ore straord.</div><div class="kpi-val" id="kpi-str">&#8212;</div><div class="kpi-sub" id="kpi-str-sub">&#8212;</div></div>
     </div>
-
-    <!-- TABELLA -->
-    <div class="table-wrap">
-      <div class="table-toolbar">
-        <span class="table-info" id="table-info">Caricamento...</span>
-        <div style="display:flex;gap:8px">
-          <input type="text" id="search" placeholder="Cerca ovunque..." style="width:220px;padding:7px 11px;font-size:13px" oninput="cercaRapido()">
-        </div>
+    <div class="charts-grid">
+      <div class="chart-card"><div class="chart-title">Ore lavoro per tecnico</div><div class="chart-wrap"><canvas id="chart-tecnici"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Rapportini per mese</div><div class="chart-wrap"><canvas id="chart-mesi"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Ore per tipo intervento</div><div class="chart-wrap"><canvas id="chart-tipi"></canvas></div></div>
+    </div>
+    <div class="table-card">
+      <div class="table-head">
+        <div class="table-head-title" id="table-count">&#8212; rapportini</div>
+        <button class="btn" onclick="esportaCSV()">Esporta CSV</button>
       </div>
-      <div style="overflow-x:auto">
-        <table id="main-table">
-          <thead>
-            <tr>
-              <th onclick="sortBy('numero')">N. <span class="sort-icon">↕</span></th>
-              <th onclick="sortBy('commessa')">Commessa <span class="sort-icon">↕</span></th>
-              <th onclick="sortBy('data')">Data <span class="sort-icon">↕</span></th>
-              <th onclick="sortBy('cliente')">Cliente <span class="sort-icon">↕</span></th>
-              <th onclick="sortBy('tecnico')">Tecnico <span class="sort-icon">↕</span></th>
-              <th onclick="sortBy('tipo')">Tipo <span class="sort-icon">↕</span></th>
-              <th onclick="sortBy('stato')">Stato <span class="sort-icon">↕</span></th>
-              <th onclick="sortBy('totLav')" style="text-align:right">Ore lav. <span class="sort-icon">↕</span></th>
-              <th onclick="sortBy('totViag')" style="text-align:right">Ore viag. <span class="sort-icon">↕</span></th>
-              <th onclick="sortBy('totStr')" style="text-align:right">Ore straord. <span class="sort-icon">↕</span></th>
-              <th style="width:80px;text-align:center">Excel</th>
-            </tr>
-          </thead>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>N.</th><th>Data</th><th>Cliente</th><th>Commessa</th><th>Tecnico</th><th>Tipo</th><th style="text-align:right">Lav.</th><th style="text-align:right">Viag.</th><th style="text-align:right">Str.</th><th>Stato</th></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
-      <div id="table-empty" class="empty" style="display:none">Nessun rapportino trovato.</div>
     </div>
-  </main>
-</div>
-
-<!-- MODALE DETTAGLIO -->
-<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
-  <div class="modal" id="modal">
-    <div class="modal-head">
-      <div class="modal-title" id="modal-title">Rapportino</div>
-      <div class="modal-actions">
-        <button class="btn btn-nas btn-sm" onclick="scaricaExcelSingolo()">Scarica Excel</button>
-        <button class="btn btn-sm" onclick="stampaPDF()">Stampa / PDF</button>
-        <button class="btn btn-sm" onclick="chiudiModale()">✕ Chiudi</button>
-      </div>
-    </div>
-    <div class="modal-body" id="modal-body"></div>
   </div>
 </div>
-
+<div class="overlay" id="overlay" onclick="if(event.target===this)chiudiModale()">
+  <div class="modal">
+    <div class="modal-head">
+      <div><div class="modal-num" id="mod-num">&#8212;</div><div class="modal-title" id="mod-title">&#8212;</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-accent" onclick="stampaPdfModale()">Stampa PDF</button>
+        <button class="btn" onclick="inviaMailCliente()">Invia al cliente</button>
+        <button class="btn" onclick="esportaDettaglioCSV()">CSV</button>
+        <button class="btn" onclick="chiudiModale()">Chiudi</button>
+      </div>
+    </div>
+    <div id="mod-body"></div>
+  </div>
+</div>
 <script>
-
-// ── STATE ──────────────────────────────────────────────────────────────────
-let tutti = [];
-let filtrati = [];
-let corrente = null;
-let sortCol = 'data';
-let sortDir = -1; // -1 = desc, 1 = asc
-
-// ── INIT ───────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  // Mese corrente come default
-  const oggi = new Date().toISOString().slice(0,7);
-  el('f-da').value = oggi;
-  el('f-a').value  = oggi;
-  caricaDati();
-});
-
-function el(id) { return document.getElementById(id); }
-function esc(s) {
-  if (!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ── ALERT ──────────────────────────────────────────────────────────────────
-let alertTimer;
-function showAlert(msg, type) {
-  const a = el('alert');
-  a.className = 'alert alert-' + (type||'info') + ' show';
-  a.textContent = msg;
-  clearTimeout(alertTimer);
-  alertTimer = setTimeout(() => a.classList.remove('show'), 4000);
-}
-
-// ── CARICA DAL NAS ─────────────────────────────────────────────────────────
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzKHF52x6L9ZnZHxVq1iENY1koRe1ynG_4u_HLuFD8uCXPQhZbqRkDZa3Z7nqemvw_G/exec';
-
-function getScriptUrl(){
-  return GOOGLE_SCRIPT_URL;
-}
-
-async function caricaDati() {
-  const url = getScriptUrl(); if(!url) return;
-  el('tbody').innerHTML = '<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--text2)">Caricamento da Google Drive...</td></tr>';
-  el('table-empty').style.display = 'none';
-  try {
-    const res  = await fetch(url + '?action=list&_dc=' + Date.now());
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'Errore server');
-    tutti = data.rapportini;
-    popolaTecnici();
-    appliFiltri();
-    showAlert('Dati aggiornati da Google Drive — ' + tutti.length + ' rapportini.', 'ok');
-  } catch(e) {
-    el('tbody').innerHTML = '';
-    el('table-empty').style.display = 'block';
-    el('table-empty').textContent = 'Errore: ' + e.message;
-    showAlert('Errore caricamento: ' + e.message, 'err');
-  }
-}
-
-function popolaTecnici() {
-  const sel = el('f-tecnico');
-  const current = sel.value;
-  const tecnici = [...new Set(tutti.map(r => r.tecnico).filter(Boolean))].sort();
-  sel.innerHTML = '<option value="">Tutti i tecnici</option>' +
-    tecnici.map(t => `<option value="${esc(t)}" ${t===current?'selected':''}>${esc(t)}</option>`).join('');
-}
-
-// ── FILTRI ─────────────────────────────────────────────────────────────────
-function appliFiltri() {
-  const da      = el('f-da').value;
-  const a       = el('f-a').value;
-  const tecnico = el('f-tecnico').value.toLowerCase();
-  const cliente = el('f-cliente').value.toLowerCase().trim();
-  const commessa= el('f-commessa')?.value?.toLowerCase().trim()||'';
-  const stato   = el('f-stato').value;
-  const tipo    = el('f-tipo').value;
-  const search  = el('search').value.toLowerCase().trim();
-
-  filtrati = tutti.filter(r => {
-    if (da && r.data && r.data.slice(0,7) < da) return false;
-    if (a  && r.data && r.data.slice(0,7) > a)  return false;
-    if (tecnico && !(r.tecnico||'').toLowerCase().includes(tecnico)) return false;
-    if (cliente  && !(r.cliente||'').toLowerCase().includes(cliente))  return false;
-    if (commessa && !(r.commessa||'').toLowerCase().includes(commessa)) return false;
-    if (stato && String(parseInt(r.stato)||0) !== stato) return false;
-    if (tipo  && r.tipo  !== tipo)  return false;
-    if (search) {
-      const haystack = [r.numero,r.cliente,r.tecnico,r.tipo,r.data,r.stato].join(' ').toLowerCase();
-      if (!haystack.includes(search)) return false;
-    }
-    return true;
-  });
-
-  ordinaEAggiorna();
-}
-
-function resetFiltri() {
-  const oggi = new Date().toISOString().slice(0,7);
-  el('f-da').value = oggi;
-  el('f-a').value  = oggi;
-  el('f-tecnico').value = '';
-  el('f-cliente').value = '';
-  el('f-stato').value  = '';
-  el('f-tipo').value   = '';
-  el('search').value   = '';
-  appliFiltri();
-}
-
-function cercaRapido() { appliFiltri(); }
-
-// ── SORT ───────────────────────────────────────────────────────────────────
-function sortBy(col) {
-  if (sortCol === col) sortDir *= -1;
-  else { sortCol = col; sortDir = -1; }
-  ordinaEAggiorna();
-}
-
-function ordinaEAggiorna() {
-  filtrati.sort((a, b) => {
-    let av = a[sortCol] ?? '';
-    let bv = b[sortCol] ?? '';
-    if (sortCol === 'totale') return (av - bv) * sortDir;
-    return String(av).localeCompare(String(bv), 'it') * sortDir;
-  });
-  aggiornaKPI();
-  renderTabella();
-}
-
-// ── KPI ────────────────────────────────────────────────────────────────────
-function aggiornaKPI() {
-  const count   = filtrati.length;
-  const totEur  = filtrati.reduce((s,r) => s + (r.totale||0), 0);
-  const tecnici = new Set(filtrati.map(r => r.tecnico).filter(Boolean));
-  const comp    = filtrati.filter(r => r.stato === 'completato').length;
-
-  const totLav  = filtrati.reduce((s,r)=>s+(r.totLav||0),0);
-  const totViag = filtrati.reduce((s,r)=>s+(r.totViag||0),0);
-  const totStr  = filtrati.reduce((s,r)=>s+(r.totStr||0),0);
-  const fmtK = n => n%1===0?n:n.toFixed(1);
-  el('kpi-count').textContent       = count;
-  el('kpi-count-sub').textContent   = comp + ' al 100%, ' + (count-comp) + ' in corso';
-  el('kpi-ore-lav').textContent     = fmtK(totLav);
-  el('kpi-ore-viag').textContent    = fmtK(totViag);
-  el('kpi-ore-str').textContent     = fmtK(totStr);
-  el('kpi-tecnici').textContent     = tecnici.size;
-  el('kpi-tecnici-sub').textContent = [...tecnici].join(', ') || '—';
-}
-
-// ── TABELLA ────────────────────────────────────────────────────────────────
-function renderTabella() {
-  const tbody = el('tbody');
-  const empty = el('table-empty');
-  el('table-info').textContent = filtrati.length + ' rapportini';
-
-  // Aggiorna icone sort
-  document.querySelectorAll('thead th').forEach(th => th.classList.remove('sorted'));
-
-  if (!filtrati.length) {
-    tbody.innerHTML = '';
-    empty.style.display = 'block';
-    empty.textContent = 'Nessun rapportino trovato con i filtri applicati.';
-    return;
-  }
-  empty.style.display = 'none';
-
-  const fmt = n => Number(n||0)%1===0 ? Number(n||0) : Number(n||0).toFixed(1);
-  tbody.innerHTML = filtrati.map(r => {
-    const dataFmt = r.data ? new Date(r.data+'T00:00:00').toLocaleDateString('it-IT') : '—';
-    const pct = parseInt(r.stato)||0;
-    const stB = pct===100
-      ? '<span class="badge b-ok">100%</span>'
-      : `<span class="badge b-bozza">${pct}%</span>`;
-    return `<tr onclick="apriRapportino('${esc(r.fileId||r.file)}')">
-      <td class="td-num">${esc(r.numero)}</td>
-      <td>${dataFmt}</td>
-      <td class="td-bold">${esc(r.cliente||'—')}</td>
-      <td class="td-num">${esc(r.commessa||'—')}</td>
-      <td>${esc(r.tecnico||'—')}</td>
-      <td style="color:var(--text2)">${esc(r.tipo||'—')}</td>
-      <td>${stB}</td>
-      <td class="td-right">${fmt(r.totLav)}h</td>
-      <td class="td-right">${fmt(r.totViag)}h</td>
-      <td class="td-right">${fmt(r.totStr)}h</td>
-      <td onclick="event.stopPropagation()" style="text-align:center">
-        <button class="btn btn-nas btn-sm" onclick="scaricaExcelDaLista('${esc(r.fileId||r.file)}')">Excel</button>
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-// ── DETTAGLIO ──────────────────────────────────────────────────────────────
-async function apriRapportino(fileId) {
-  const url = getScriptUrl(); if(!url) return;
-  try {
-    const res  = await fetch(url + '?action=get&fileId=' + encodeURIComponent(fileId) + '&_dc=' + Date.now());
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error);
-    corrente = data.rapportino;
-    renderModale(corrente);
-    el('overlay').classList.add('open');
-  } catch(e) {
-    showAlert('Errore apertura rapportino: ' + e.message, 'err');
-  }
-}
-
-function renderModale(r) {
-  const dataFmt = r.data ? new Date(r.data+'T00:00:00').toLocaleDateString('it-IT') : '—';
-  const fmt = n => Number(n||0)%1===0 ? Number(n||0) : Number(n||0).toFixed(1);
-
-  // Materiali
-  const righeM = (r.materiali||[]).map(m =>
-    `<tr><td>${esc(m.desc)}</td><td style="text-align:center">${esc(m.qty)}</td><td style="text-align:center">${esc(m.unit)}</td></tr>`
-  ).join('');
-
-  // Operai
-  const totLav  = (r.operai||[]).reduce((s,o)=>s+(Number(o.oreLav)||0),0);
-  const totViag = (r.operai||[]).reduce((s,o)=>s+(Number(o.oreViag)||0),0);
-  const totStr  = (r.operai||[]).reduce((s,o)=>s+(Number(o.oreStr)||0),0);
-  const righeO = (r.operai||[]).map(o =>
-    `<tr><td>${esc(o.nome)}</td><td style="text-align:center">${fmt(o.oreLav)}</td><td style="text-align:center">${fmt(o.oreViag)}</td><td style="text-align:center">${fmt(o.oreStr)}</td></tr>`
-  ).join('');
-
-  el('modal-title').textContent = 'Rapportino N. ' + (r.numero||'—') + ' — ' + (r.cliente||'');
-  el('modal-body').innerHTML = `
-    <div class="print-header">
-      <div>
-        <div class="print-azienda">${esc(r.azienda||'—')}</div>
-        <div class="print-sub">${esc([r.piva,r.tel,r.email].filter(Boolean).join(' · '))}</div>
-      </div>
-      <div class="print-meta">
-        <span>Rapportino n.</span>
-        <strong>${esc(r.numero||'—')}</strong>
-        <div style="margin-top:3px">${dataFmt}</div>
-      </div>
-    </div>
-    <div class="print-info">
-      <div class="print-cell">Cliente<strong>${esc(r.cliente||'—')}</strong></div>
-      <div class="print-cell">N. Commessa<strong>${esc(r.commessa||'—')}</strong></div>
-      <div class="print-cell">Indirizzo<strong>${esc(r.indirizzo||'—')}</strong></div>
-      <div class="print-cell">Tecnico resp.<strong>${esc(r.tecnico||'—')}</strong></div>
-      <div class="print-cell">Tipo intervento<strong>${esc(r.tipo||'—')}</strong></div>
-      <div class="print-cell">Avanzamento<strong>${parseInt(r.stato)||0}%</strong></div>
-    </div>
-    ${r.descrizione?`<div class="print-note" style="margin-bottom:14px"><strong>Descrizione intervento</strong><p>${esc(r.descrizione)}</p></div>`:''}
-
-    ${righeM?`
-    <div style="margin-bottom:16px">
-      <div class="print-section-title" style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);padding-bottom:7px;border-bottom:1px solid var(--border);margin-bottom:8px">Materiali utilizzati</div>
-      <table class="print-table">
-        <thead><tr><th>Materiale</th><th style="text-align:center">Quantità</th><th style="text-align:center">Unità</th></tr></thead>
-        <tbody>${righeM}</tbody>
-      </table>
-    </div>`:''}
-
-    ${righeO?`
-    <div style="margin-bottom:16px">
-      <div class="print-section-title" style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);padding-bottom:7px;border-bottom:1px solid var(--border);margin-bottom:8px">Operai e ore</div>
-      <table class="print-table">
-        <thead><tr><th>Operaio</th><th style="text-align:center">Ore lavoro</th><th style="text-align:center">Ore viaggio</th><th style="text-align:center">Ore straord.</th></tr></thead>
-        <tbody>${righeO}</tbody>
-      </table>
-      <div class="print-tot">
-        <span>Tot. lavoro: <span class="big">${fmt(totLav)}h</span></span>
-        <span>Tot. viaggio: <span class="big">${fmt(totViag)}h</span></span>
-        <span>Tot. straord.: <span class="big">${fmt(totStr)}h</span></span>
-      </div>
-    </div>`:'<p style="font-size:14px;color:var(--text2);padding:8px 0">Nessun operaio registrato.</p>'}
-
-    ${r.note?`<div class="print-note"><strong>Note</strong><p>${esc(r.note)}</p></div>`:''}
-    <div class="print-firme">
-      <div class="print-firma-box">Firma tecnico</div>
-      <div class="print-firma-box">Firma cliente / Timbro</div>
-    </div>`;
-}
-
-function chiudiModale() {
-  el('overlay').classList.remove('open');
-  corrente = null;
-}
-
-function handleOverlayClick(e) {
-  if (e.target === el('overlay')) chiudiModale();
-}
-
-function stampaPDF() {
-  window.print();
-}
-
-// ── EXCEL SINGOLO ──────────────────────────────────────────────────────────
-function scaricaExcelSingolo() {
-  if (!corrente) return;
-  generaExcel(corrente);
-}
-
-async function scaricaExcelDaLista(fileId) {
-  const url = getScriptUrl(); if(!url) return;
-  try {
-    const res  = await fetch(url + '?action=get&fileId=' + encodeURIComponent(fileId) + '&_dc=' + Date.now());
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error);
-    generaExcel(data.rapportino);
-  } catch(e) { showAlert('Errore: ' + e.message, 'err'); }
-}
-
-function generaExcel(r) {
-  if (typeof XLSX === 'undefined') { showAlert('Libreria Excel non disponibile.', 'err'); return; }
-  const fmt = n => Number(n||0)%1===0 ? Number(n||0) : Number(n||0).toFixed(1);
-
-  // Foglio 1: dati generali
-  const info = [
-    ['Campo','Valore'],
-    ['Rapportino N.', r.numero||''],
-    ['Data', r.data||''],
-    ['Cliente / Azienda', r.cliente||''],
-    ['N. Commessa', r.commessa||''],
-    ['Indirizzo', r.indirizzo||''],
-    ['Tecnico resp.', r.tecnico||''],
-    ['Tipo intervento', r.tipo||''],
-    ['Avanzamento', (parseInt(r.stato)||0)+'%'],
-    [],
-    ['Azienda emittente', r.azienda||''],
-    ['P.IVA', r.piva||''],
-    ['Telefono', r.tel||''],
-  ];
-  if (r.descrizione) { info.push([]); info.push(['Descrizione', r.descrizione]); }
-  if (r.note)        { info.push([]); info.push(['Note', r.note]); }
-
-  // Foglio 2: materiali
-  const mats = [['Materiale / Descrizione','Quantità','Unità']];
-  (r.materiali||[]).forEach(m => mats.push([m.desc, m.qty, m.unit]));
-
-  // Foglio 3: operai e ore
-  const totLav  = (r.operai||[]).reduce((s,o)=>s+(Number(o.oreLav)||0),0);
-  const totViag = (r.operai||[]).reduce((s,o)=>s+(Number(o.oreViag)||0),0);
-  const totStr  = (r.operai||[]).reduce((s,o)=>s+(Number(o.oreStr)||0),0);
-  const ops = [['Operaio','Ore lavoro','Ore viaggio','Ore straordinario']];
-  (r.operai||[]).forEach(o => ops.push([o.nome, fmt(o.oreLav), fmt(o.oreViag), fmt(o.oreStr)]));
-  ops.push([]);
-  ops.push(['TOTALE', fmt(totLav), fmt(totViag), fmt(totStr)]);
-
-  const wb = XLSX.utils.book_new();
-  const ws1 = XLSX.utils.aoa_to_sheet(info);
-  ws1['!cols'] = [{wch:26},{wch:44}];
-  XLSX.utils.book_append_sheet(wb, ws1, 'Dati generali');
-  const ws2 = XLSX.utils.aoa_to_sheet(mats);
-  ws2['!cols'] = [{wch:36},{wch:12},{wch:10}];
-  XLSX.utils.book_append_sheet(wb, ws2, 'Materiali');
-  const ws3 = XLSX.utils.aoa_to_sheet(ops);
-  ws3['!cols'] = [{wch:26},{wch:12},{wch:13},{wch:16}];
-  XLSX.utils.book_append_sheet(wb, ws3, 'Operai e ore');
-
-  const fname = 'rapportino_'+(r.numero||'').replace(/[^a-zA-Z0-9_-]/g,'_')+'_'+(r.data||'')+'.xlsx';
-  XLSX.writeFile(wb, fname);
-}
-
-// ── EXCEL RIEPILOGATIVO ────────────────────────────────────────────────────
-function esportaExcelRiepilogativo() {
-  if (!filtrati.length) { showAlert('Nessun rapportino da esportare con i filtri correnti.', 'err'); return; }
-  if (typeof XLSX === 'undefined') { showAlert('Libreria Excel non disponibile.', 'err'); return; }
-
-  // Foglio riepilogo
-  const riepilogo = [
-    ['N. Rapportino','Data','Cliente','N. Commessa','Indirizzo','Tecnico','Tipo intervento','Avanzamento %','Ore lavoro','Ore viaggio','Ore straord.']
-  ];
-  filtrati.forEach(r => {
-    riepilogo.push([
-      r.numero||'', r.data||'', r.cliente||'', r.commessa||'', r.indirizzo||'',
-      r.tecnico||'', r.tipo||'',
-      (parseInt(r.stato)||0)+'%',
-      r.totLav||0, r.totViag||0, r.totStr||0
-    ]);
-  });
-  const rTotLav  = filtrati.reduce((s,r)=>s+(r.totLav||0),0);
-  const rTotViag = filtrati.reduce((s,r)=>s+(r.totViag||0),0);
-  const rTotStr = filtrati.reduce((s,r)=>s+(r.totStr||0),0);
-  riepilogo.push([]);
-  riepilogo.push(['','','','','','','','TOTALE',rTotLav,rTotViag,rTotStr]);
-
-  // Foglio per tecnico
-  const perTecnico = {};
-  filtrati.forEach(r => {
-    const t = r.tecnico || 'Non specificato';
-    if (!perTecnico[t]) perTecnico[t] = [];
-    perTecnico[t].push(r);
-  });
-  const riepTecnico = [['Tecnico','N. rapportini','Ore lavoro','Ore viaggio']];
-  Object.entries(perTecnico).sort((a,b)=>a[0].localeCompare(b[0],'it')).forEach(([t,lista]) => {
-    const tot = +lista.reduce((s,r)=>s+(r.totale||0),0).toFixed(2);
-    const tLav  = lista.reduce((s,r)=>s+(r.totLav||0),0);
-    const tViag = lista.reduce((s,r)=>s+(r.totViag||0),0);
-    riepTecnico.push([t, lista.length, tLav, tViag]);
-  });
-
-  const wb = XLSX.utils.book_new();
-  const ws1 = XLSX.utils.aoa_to_sheet(riepilogo);
-  ws1['!cols'] = [{wch:14},{wch:12},{wch:26},{wch:16},{wch:26},{wch:18},{wch:20},{wch:12},{wch:11},{wch:11},{wch:11}];
-  XLSX.utils.book_append_sheet(wb, ws1, 'Riepilogo');
-
-  const ws2 = XLSX.utils.aoa_to_sheet(riepTecnico);
-  ws2['!cols'] = [{wch:24},{wch:16},{wch:18}];
-  XLSX.utils.book_append_sheet(wb, ws2, 'Per tecnico');
-
-  const oggi = new Date().toISOString().slice(0,10);
-  const da   = el('f-da').value || '';
-  const a    = el('f-a').value  || '';
-  const periodo = da && a ? `_${da}_${a}` : `_${oggi}`;
-  XLSX.writeFile(wb, `rapportini_riepilogo${periodo}.xlsx`);
-  showAlert('Excel riepilogativo esportato — ' + filtrati.length + ' rapportini.', 'ok');
-}
-
-// ── GESTIONE URL SCRIPT (protetto da password) ────────────────────────────
-const URL_ADMIN_PASS = 'Admin2025!';
-let scriptUrlOverride = localStorage.getItem('sup_script_override') || null;
-
-// Sovrascrive getScriptUrl se c'è un URL salvato dall'admin
-const _origGetScriptUrl = getScriptUrl;
-function getScriptUrl(){
-  return scriptUrlOverride || GOOGLE_SCRIPT_URL;
-}
-
-function sbloccaUrl(){
-  const box = document.getElementById('url-edit-box');
-  const nu = document.getElementById('url-nuovo');
-  if(box) box.style.display = 'block';
-  if(nu) nu.value = getScriptUrl();
-  const p = document.getElementById('url-admin-pass');
-  if(p){ p.value=''; p.focus(); }
-}
-
-function chiudiUrlEdit(){
-  const box = document.getElementById('url-edit-box');
-  if(box) box.style.display = 'none';
-}
-
-function confermaUrl(){
-  const pass = document.getElementById('url-admin-pass')?.value || '';
-  const nuovoUrl = document.getElementById('url-nuovo')?.value?.trim() || '';
-  if(pass !== URL_ADMIN_PASS){
-    showAlert('Password amministratore errata.', 'err');
-    return;
-  }
-  if(!nuovoUrl.includes('script.google.com')){
-    showAlert('URL non valido — deve essere un URL di Google Apps Script.', 'err');
-    return;
-  }
-  scriptUrlOverride = nuovoUrl;
-  localStorage.setItem('sup_script_override', nuovoUrl);
-  chiudiUrlEdit();
-  showAlert('URL aggiornato. Ricarico i dati...', 'ok');
-  caricaDati();
-}
-
+var SCRIPT_URL    = 'https://script.google.com/macros/s/AKfycbzKHF52x6L9ZnZHxVq1iENY1koRe1ynG_4u_HLuFD8uCXPQhZbqRkDZa3Z7nqemvw_G/exec';
+var DASH_PASSWORD = 'Resp2025!';
+var REFRESH_MIN   = 210;
+var tutti = [], filtrati = [], rapCorrente = null, charts = {};
+var refreshTimer = null, countdownTimer = null, secondiRimasti = 0;
+function doLogin(){var p=document.getElementById('pwd').value;if(p===DASH_PASSWORD){document.getElementById('login-screen').style.display='none';document.getElementById('app').classList.add('visible');caricaDati();avviaAutoRefresh();}else{document.getElementById('pwd-err').classList.add('show');document.getElementById('pwd').value='';}}
+document.getElementById('pwd').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+function el(id){return document.getElementById(id)}
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function fmt(n){n=Number(n)||0;return n%1===0?n:n.toFixed(1)}
+function fmtData(d){return d?new Date(d+'T00:00:00').toLocaleDateString('it-IT'):'—'}
+var _at;
+function showAlert(msg,type){var a=el('alert');a.className='alert alert-'+type+' show';a.textContent=msg;clearTimeout(_at);_at=setTimeout(function(){a.classList.remove('show')},5000)}
+function avviaAutoRefresh(){if(refreshTimer)clearInterval(refreshTimer);if(countdownTimer)clearInterval(countdownTimer);secondiRimasti=REFRESH_MIN*60;aggiornaCountdown();countdownTimer=setInterval(function(){secondiRimasti--;if(secondiRimasti<0)secondiRimasti=REFRESH_MIN*60;aggiornaCountdown()},1000);refreshTimer=setInterval(function(){secondiRimasti=REFRESH_MIN*60;caricaDati()},REFRESH_MIN*60*1000);}
+function aggiornaCountdown(){var ore=Math.floor(secondiRimasti/3600),min=Math.floor((secondiRimasti%3600)/60),sec=secondiRimasti%60;var l=el('refresh-countdown');if(l)l.textContent='Agg. in '+(ore>0?ore+'h ':'')+String(min).padStart(2,'0')+'m '+String(sec).padStart(2,'0')+'s';}
+async function caricaDati(){el('conn-dot').className='conn-dot spin';el('conn-lbl').textContent='Caricamento...';try{var res=await fetch(SCRIPT_URL+'?action=list&_dc='+Date.now());var d=await res.json();if(!d.ok)throw new Error(d.error);tutti=d.rapportini||[];el('conn-dot').className='conn-dot ok';el('conn-lbl').textContent='Connesso — '+tutti.length+' rapportini';aggiornaFiltri();}catch(e){el('conn-dot').className='conn-dot err';el('conn-lbl').textContent='Errore';showAlert('Errore: '+e.message,'err')}}
+function resetFiltri(){['f-da','f-a','f-tecnico','f-cliente','f-commessa'].forEach(function(id){el(id).value=''});el('f-stato').value='';aggiornaFiltri()}
+function aggiornaFiltri(){var da=el('f-da').value,a=el('f-a').value;var te=el('f-tecnico').value.toLowerCase().trim();var cl=el('f-cliente').value.toLowerCase().trim();var co=el('f-commessa').value.toLowerCase().trim();var st=el('f-stato').value;filtrati=tutti.filter(function(r){if(da&&r.data&&r.data<da)return false;if(a&&r.data&&r.data>a)return false;if(te&&!(r.tecnico||'').toLowerCase().includes(te))return false;if(cl&&!(r.cliente||'').toLowerCase().includes(cl))return false;if(co&&!(r.commessa||'').toLowerCase().includes(co))return false;if(st==='100'&&parseInt(r.stato)!==100)return false;if(st==='<100'&&parseInt(r.stato)>=100)return false;return true;});aggiornaKPI();aggiornaGrafici();aggiornaTabella();}
+function aggiornaKPI(){var tL=filtrati.reduce(function(s,r){return s+(r.totLav||0)},0);var tV=filtrati.reduce(function(s,r){return s+(r.totViag||0)},0);var tS=filtrati.reduce(function(s,r){return s+(r.totStr||0)},0);el('kpi-tot').textContent=filtrati.length;el('kpi-lav').textContent=fmt(tL);el('kpi-viag').textContent=fmt(tV);el('kpi-str').textContent=fmt(tS);var tec=filtrati.map(function(r){return r.tecnico}).filter(function(v,i,a){return v&&a.indexOf(v)===i});el('kpi-tot-sub').textContent=tec.length+' tecnici';el('kpi-lav-sub').textContent=fmt(tL/(filtrati.length||1))+'h media/rapportino';el('kpi-viag-sub').textContent=fmt(tV/(filtrati.length||1))+'h media/rapportino';el('kpi-str-sub').textContent=fmt(tS/(filtrati.length||1))+'h media/rapportino';}
+var CDEF={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#e8e7e0'},ticks:{color:'#9b9a92',font:{family:'IBM Plex Mono',size:10}}},y:{grid:{color:'#e8e7e0'},ticks:{color:'#9b9a92',font:{family:'IBM Plex Mono',size:10}}}}};
+function killChart(id){if(charts[id]){charts[id].destroy();delete charts[id]}}
+function aggiornaGrafici(){var tm={};filtrati.forEach(function(r){var t=r.tecnico||'(N/D)';tm[t]=(tm[t]||0)+(r.totLav||0)});var tl=Object.keys(tm).sort(function(a,b){return tm[b]-tm[a]}).slice(0,10);killChart('tecnici');charts['tecnici']=new Chart(el('chart-tecnici'),{type:'bar',data:{labels:tl,datasets:[{data:tl.map(function(k){return tm[k]}),backgroundColor:'#2d6a2d55',borderColor:'#2d6a2d',borderWidth:1,borderRadius:4}]},options:Object.assign({},CDEF)});var mm={};filtrati.forEach(function(r){if(!r.data)return;var m=r.data.slice(0,7);mm[m]=(mm[m]||0)+1});var mk=Object.keys(mm).sort();var ml=mk.map(function(m){var p=m.split('-');return['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'][parseInt(p[1])-1]+' '+p[0].slice(2)});killChart('mesi');charts['mesi']=new Chart(el('chart-mesi'),{type:'line',data:{labels:ml,datasets:[{data:mk.map(function(k){return mm[k]}),borderColor:'#1a4a7a',backgroundColor:'#1a4a7a15',borderWidth:2,pointBackgroundColor:'#1a4a7a',tension:.35,fill:true}]},options:Object.assign({},CDEF)});var pm={};filtrati.forEach(function(r){var t=r.tipo||'(N/D)';pm[t]=(pm[t]||0)+(r.totLav||0)});var pk=Object.keys(pm).sort(function(a,b){return pm[b]-pm[a]});var PC=['#2d6a2d','#1a4a7a','#c07000','#c0392b','#6a2d6a','#2d5a8c','#8c6a00','#2d8c5a'];killChart('tipi');charts['tipi']=new Chart(el('chart-tipi'),{type:'doughnut',data:{labels:pk,datasets:[{data:pk.map(function(k){return pm[k]}),backgroundColor:PC.map(function(c){return c+'cc'}),borderColor:PC,borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#6b6a62',font:{family:'IBM Plex Mono',size:10},padding:10,boxWidth:12}}}}});}
+function wKey(ds){if(!ds)return'Senza data';var d=new Date(ds+'T00:00:00'),day=d.getDay(),diff=day===0?-6:1-day,lun=new Date(d);lun.setDate(d.getDate()+diff);var ven=new Date(lun);ven.setDate(lun.getDate()+4);var o={day:'2-digit',month:'2-digit',year:'numeric'};return'Sett. '+lun.toLocaleDateString('it-IT',o)+' — '+ven.toLocaleDateString('it-IT',o)}
+function wSort(ds){if(!ds)return'9999';var d=new Date(ds+'T00:00:00'),day=d.getDay(),diff=day===0?-6:1-day,lun=new Date(d);lun.setDate(d.getDate()+diff);return lun.toISOString().slice(0,10)}
+function fN(n){n=Number(n)||0;return n%1===0?n:n.toFixed(1)}
+function toggleSett(key){var open=false;document.querySelectorAll('tr[data-week]').forEach(function(r){if(r.dataset.week===key){open=r.style.display!=='none';return}});document.querySelectorAll('tr[data-week]').forEach(function(r){if(r.dataset.week===key)r.style.display=open?'none':''});document.querySelectorAll('span[data-wh]').forEach(function(s){if(s.dataset.wh===key)s.textContent=open?'▶':'▼'});}
+function aggiornaTabella(){el('table-count').textContent=filtrati.length+' rapportini';var tbody=el('tbody');tbody.innerHTML='';if(!filtrati.length){var e=document.createElement('tr');e.innerHTML='<td colspan="10" class="empty-table">Nessun rapportino nel periodo selezionato</td>';tbody.appendChild(e);return}var sett={},keys=[];filtrati.forEach(function(r){var k=wKey(r.data),s=wSort(r.data);if(!sett[k]){sett[k]={sort:s,rows:[],tL:0,tV:0,tS:0};keys.push(k)}sett[k].rows.push(r);sett[k].tL+=r.totLav||0;sett[k].tV+=r.totViag||0;sett[k].tS+=r.totStr||0});keys.sort(function(a,b){return sett[b].sort.localeCompare(sett[a].sort)});keys.forEach(function(key,ki){var s=sett[key],isFirst=ki===0;var hdr=document.createElement('tr');hdr.style.cssText='background:var(--surface2);cursor:pointer;user-select:none';(function(k){hdr.addEventListener('click',function(){toggleSett(k)})})(key);var td=document.createElement('td');td.setAttribute('colspan','10');td.style.cssText='padding:11px 16px;font-size:11px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--text2);border-bottom:1px solid var(--border2)';var arr=document.createElement('span');arr.textContent=isFirst?'▼':'▶';arr.style.cssText='margin-right:10px;color:var(--text3)';arr.dataset.wh=key;td.appendChild(arr);td.innerHTML+='<span style="color:var(--text);font-weight:500">'+esc(key)+'</span>'+'<span style="margin-left:16px">Lav: <strong style="color:#2d6a2d">'+fN(s.tL)+'h</strong></span>'+'<span style="margin-left:10px">Viag: <strong style="color:#1a4a7a">'+fN(s.tV)+'h</strong></span>'+'<span style="margin-left:10px">Straord: <strong style="color:#c07000">'+fN(s.tS)+'h</strong></span>'+'<span style="margin-left:10px;color:var(--text3)">'+s.rows.length+' rapportini</span>';hdr.appendChild(td);tbody.appendChild(hdr);s.rows.forEach(function(r){var pct=parseInt(r.stato)||0;var badge=pct===100?'<span class="badge b-ok">100%</span>':pct>=50?'<span class="badge b-mid">'+pct+'%</span>':'<span class="badge b-low">'+pct+'%</span>';var firma=r.firmato?'<span class="badge b-ok" style="margin-left:4px">Firmato</span>':'';var tr=document.createElement('tr');tr.style.cursor='pointer';tr.style.display=isFirst?'':'none';tr.dataset.week=key;tr.dataset.id=r.fileId||'';(function(id){tr.addEventListener('click',function(){apriDettaglio(id)})})(r.fileId||'');tr.innerHTML='<td style="font-family:var(--mono);color:#2d6a2d;font-size:12px">'+esc(r.numero||'—')+'</td>'+'<td style="font-family:var(--mono);font-size:12px">'+fmtData(r.data)+'</td>'+'<td style="font-weight:500">'+esc(r.cliente||'—')+'</td>'+'<td style="font-family:var(--mono);font-size:12px">'+esc(r.commessa||'—')+'</td>'+'<td>'+esc(r.tecnico||'—')+'</td>'+'<td style="color:var(--text2)">'+esc(r.tipo||'—')+'</td>'+'<td style="text-align:right;font-family:var(--mono);color:#1a4a7a">'+fN(r.totLav||0)+'h</td>'+'<td style="text-align:right;font-family:var(--mono);color:var(--text2)">'+fN(r.totViag||0)+'h</td>'+'<td style="text-align:right;font-family:var(--mono);color:#c07000">'+fN(r.totStr||0)+'h</td>'+'<td>'+badge+firma+'</td>';tbody.appendChild(tr);});}); }
+async function apriDettaglio(fileId){if(!fileId)return;try{var res=await fetch(SCRIPT_URL+'?action=get&fileId='+encodeURIComponent(fileId)+'&_dc='+Date.now());var d=await res.json();if(!d.ok)throw new Error(d.error);rapCorrente=d.rapportino;mostraModale(rapCorrente)}catch(e){showAlert('Errore: '+e.message,'err')}}
+function mostraModale(r){el('mod-num').textContent='N. '+(r.numero||'—');el('mod-title').textContent=(r.cliente||'—')+' — '+fmtData(r.data);var rM=(r.materiali||[]).map(function(m){return'<tr><td>'+esc(m.desc)+'</td><td style="text-align:center">'+esc(m.qty)+'</td><td style="text-align:center">'+esc(m.unit)+'</td></tr>'}).join('');var rO=(r.operai||[]).map(function(o){return'<tr><td>'+esc(o.nome)+'</td><td style="text-align:right">'+fmt(o.oreLav)+'</td><td style="text-align:right">'+fmt(o.oreViag)+'</td><td style="text-align:right">'+fmt(o.oreStr)+'</td></tr>'}).join('');var h='<div class="info-grid">'+'<div class="info-cell">Cliente<strong>'+esc(r.cliente||'—')+'</strong></div>'+'<div class="info-cell">N. Commessa<strong>'+esc(r.commessa||'—')+'</strong></div>'+'<div class="info-cell">Data<strong>'+fmtData(r.data)+'</strong></div>'+'<div class="info-cell">Tecnico<strong>'+esc(r.tecnico||'—')+'</strong></div>'+'<div class="info-cell">Tipo<strong>'+esc(r.tipo||'—')+'</strong></div>'+'<div class="info-cell">Avanzamento<strong>'+(parseInt(r.stato)||0)+'%</strong></div>'+'<div class="info-cell">Indirizzo<strong>'+esc(r.indirizzo||'—')+'</strong></div></div>';if(r.descrizione)h+='<div class="modal-section"><div class="sec-title">Descrizione</div><div class="note-box">'+esc(r.descrizione)+'</div></div>';if(rM)h+='<div class="modal-section"><div class="sec-title">Materiali</div><table><thead><tr><th>Materiale</th><th style="text-align:center">Qty</th><th style="text-align:center">Unità</th></tr></thead><tbody>'+rM+'</tbody></table></div>';if(rO)h+='<div class="modal-section"><div class="sec-title">Operai e ore</div><table><thead><tr><th>Operaio</th><th style="text-align:right">Lav.</th><th style="text-align:right">Viag.</th><th style="text-align:right">Str.</th></tr></thead><tbody>'+rO+'</tbody></table><div class="tot-row"><span>Lav: <strong>'+fmt(r.totLav||0)+'h</strong></span><span>Viag: <strong>'+fmt(r.totViag||0)+'h</strong></span><span>Str: <strong>'+fmt(r.totStr||0)+'h</strong></span></div></div>';if(r.note)h+='<div class="modal-section"><div class="sec-title">Note</div><div class="note-box">'+esc(r.note)+'</div></div>';h+='<div class="modal-section"><div class="sec-title">Firme '+(r.firmato?'<span style="color:#2d6a2d">Firmato</span>':'<span style="color:#9b9a92">Non firmato</span>')+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:8px"><div><div style="font-size:11px;color:var(--text2);margin-bottom:6px">Tecnico</div>'+(r.firme&&r.firme.tecnico?'<img src="'+r.firme.tecnico+'" style="max-width:100%;height:90px;object-fit:contain;border:1px solid var(--border);border-radius:6px;background:#fafaf8;padding:4px">':'<div style="height:90px;border:1px dashed var(--border2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text3)">Non firmato</div>')+'</div><div><div style="font-size:11px;color:var(--text2);margin-bottom:6px">Cliente / Timbro</div>'+(r.firme&&r.firme.cliente?'<img src="'+r.firme.cliente+'" style="max-width:100%;height:90px;object-fit:contain;border:1px solid var(--border);border-radius:6px;background:#fafaf8;padding:4px">':'<div style="height:90px;border:1px dashed var(--border2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text3)">Non firmato</div>')+'</div></div></div>';el('mod-body').innerHTML=h;el('overlay').classList.add('open');document.body.style.overflow='hidden';}
+function chiudiModale(){el('overlay').classList.remove('open');document.body.style.overflow='';rapCorrente=null}
+function stampaPdfModale(){if(!rapCorrente)return;var r=rapCorrente;var rM=(r.materiali||[]).map(function(m){return'<tr><td>'+esc(m.desc)+'</td><td style="text-align:center">'+esc(m.qty)+'</td><td style="text-align:center">'+esc(m.unit)+'</td></tr>'}).join('');var rO=(r.operai||[]).map(function(o){return'<tr><td>'+esc(o.nome)+'</td><td style="text-align:center">'+fmt(o.oreLav)+'</td><td style="text-align:center">'+fmt(o.oreViag)+'</td><td style="text-align:center">'+fmt(o.oreStr)+'</td></tr>'}).join('');var ft=r.firme&&r.firme.tecnico?'<img src="'+r.firme.tecnico+'" style="height:70px;max-width:200px;object-fit:contain;display:block;margin-top:8px">':'';var fc=r.firme&&r.firme.cliente?'<img src="'+r.firme.cliente+'" style="height:70px;max-width:200px;object-fit:contain;display:block;margin-top:8px">':'';var win=window.open('','_blank');win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Rapportino N.'+esc(r.numero||'')+'</title><style>body{font-family:-apple-system,sans-serif;font-size:13px;color:#1a1a18;padding:32px;max-width:800px;margin:0 auto}.hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #1a1a18}.az{font-size:18px;font-weight:600}.sub{font-size:12px;color:#6b6a62;margin-top:3px}.num{text-align:right}.num strong{font-size:16px;font-weight:600;display:block}.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}.cell{font-size:11px;color:#6b6a62}.cell strong{display:block;font-size:13px;color:#1a1a18;font-weight:500;margin-top:2px}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}th{text-align:left;font-size:10px;font-weight:500;text-transform:uppercase;color:#6b6a62;padding:5px 0;border-bottom:1px solid #ccc}td{padding:6px 0;border-bottom:1px solid #eee}.sec{font-size:10px;font-weight:500;text-transform:uppercase;color:#6b6a62;margin:16px 0 6px;padding-bottom:5px;border-bottom:1px solid #eee}.note{background:#f5f4f0;border-radius:4px;padding:10px 12px;font-size:12px;color:#6b6a62;margin-top:8px}.tot{display:flex;gap:20px;justify-content:flex-end;padding:8px 0;border-top:1px solid #ccc;font-size:12px;color:#6b6a62}.tot strong{color:#1a4a7a;font-weight:600}.firme{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:32px}.fb{border-top:1px solid #ccc;padding-top:6px;font-size:10px;color:#9b9a92;text-transform:uppercase}</style></head><body><div class="hd"><div><div class="az">'+esc(r.azienda||'Azienda')+'</div><div class="sub">'+esc([r.piva,r.tel,r.email].filter(Boolean).join(' · '))+'</div></div><div class="num"><span style="font-size:11px">Rapportino n.</span><strong>'+esc(r.numero||'—')+'</strong><div style="font-size:12px;color:#6b6a62;margin-top:2px">'+fmtData(r.data)+'</div></div></div><div class="grid"><div class="cell">Cliente<strong>'+esc(r.cliente||'—')+'</strong></div><div class="cell">N. Commessa<strong>'+esc(r.commessa||'—')+'</strong></div><div class="cell">Indirizzo<strong>'+esc(r.indirizzo||'—')+'</strong></div><div class="cell">Tecnico<strong>'+esc(r.tecnico||'—')+'</strong></div><div class="cell">Tipo<strong>'+esc(r.tipo||'—')+'</strong></div><div class="cell">Avanzamento<strong>'+(parseInt(r.stato)||0)+'%</strong></div></div>'+(r.descrizione?'<div class="note"><strong style="display:block;font-size:10px;text-transform:uppercase;color:#9b9a92;margin-bottom:4px">Descrizione</strong>'+esc(r.descrizione)+'</div>':'')+(rM?'<div class="sec">Materiali</div><table><thead><tr><th>Materiale</th><th>Qty</th><th>Unità</th></tr></thead><tbody>'+rM+'</tbody></table>':'')+(rO?'<div class="sec">Operai e ore</div><table><thead><tr><th>Operaio</th><th>Lavoro</th><th>Viaggio</th><th>Straord.</th></tr></thead><tbody>'+rO+'</tbody></table><div class="tot"><span>Lav: <strong>'+fmt(r.totLav||0)+'h</strong></span><span>Viag: <strong>'+fmt(r.totViag||0)+'h</strong></span><span>Str: <strong>'+fmt(r.totStr||0)+'h</strong></span></div>':'')+(r.note?'<div class="note"><strong style="display:block;font-size:10px;text-transform:uppercase;color:#9b9a92;margin-bottom:4px">Note</strong>'+esc(r.note)+'</div>':'')+'<div class="firme"><div class="fb">Firma tecnico'+ft+'</div><div class="fb">Firma cliente / Timbro'+fc+'</div></div></body></html>');win.document.close();setTimeout(function(){win.print()},500);}
+function inviaMailCliente(){if(!rapCorrente)return;var dest=prompt('Indirizzo email del cliente:');if(!dest||!dest.includes('@')){alert('Email non valida.');return}fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({_action:'sendMail',to:dest,rapportino:rapCorrente})}).then(function(r){return r.json()}).then(function(d){showAlert(d.ok?'Email inviata a '+dest:'Errore: '+(d.error||''),d.ok?'ok':'err')}).catch(function(e){showAlert('Errore: '+e.message,'err')});}
+function csvE(v){var s=String(v!=null?v:'');return s.includes(',')||s.includes('"')||s.includes('\n')?'"'+s.replace(/"/g,'""')+'"':s}
+function csvRow(){return Array.prototype.slice.call(arguments).map(csvE).join(',')}
+function esportaCSV(){if(!filtrati.length){showAlert('Nessun dato.','err');return}var lines=[csvRow('N. Rapportino','Data','Cliente','Commessa','Indirizzo','Tecnico','Tipo','Avanzamento %','Ore Lavoro','Ore Viaggio','Ore Straord.')];filtrati.forEach(function(r){lines.push(csvRow(r.numero,r.data,r.cliente,r.commessa,r.indirizzo||'',r.tecnico,r.tipo,parseInt(r.stato)||0,fmt(r.totLav||0),fmt(r.totViag||0),fmt(r.totStr||0)))});lines.push(csvRow(''));lines.push(csvRow('TOTALI','','','','','','','',fmt(filtrati.reduce(function(s,r){return s+(r.totLav||0)},0)),fmt(filtrati.reduce(function(s,r){return s+(r.totViag||0)},0)),fmt(filtrati.reduce(function(s,r){return s+(r.totStr||0)},0))));scarica(lines.join('\n'),'rapportini_'+new Date().toISOString().slice(0,10)+'.csv');}
+function esportaDettaglioCSV(){if(!rapCorrente)return;var r=rapCorrente;var lines=[csvRow('RAPPORTINO N.'+(r.numero||''),'Data',r.data||''),csvRow('Cliente',r.cliente||'','Commessa',r.commessa||''),csvRow('Tecnico',r.tecnico||'','Tipo',r.tipo||''),csvRow('Indirizzo',r.indirizzo||'','Avanzamento',(parseInt(r.stato)||0)+'%'),csvRow('Descrizione',r.descrizione||''),csvRow(''),csvRow('MATERIALI'),csvRow('Materiale','Qty','Unità')];(r.materiali||[]).forEach(function(m){lines.push(csvRow(m.desc,m.qty,m.unit))});lines.push(csvRow(''),csvRow('OPERAI E ORE'),csvRow('Operaio','Lav.','Viag.','Str.'));(r.operai||[]).forEach(function(o){lines.push(csvRow(o.nome,fmt(o.oreLav),fmt(o.oreViag),fmt(o.oreStr)))});lines.push(csvRow(''),csvRow('Totale lavoro',fmt(r.totLav||0),'Viaggio',fmt(r.totViag||0),'Straord.',fmt(r.totStr||0)),csvRow(''),csvRow('Note',r.note||''));scarica(lines.join('\n'),(r.numero||'rapportino')+'.csv');}
+function scarica(contenuto,nome){var b=new Blob(['\uFEFF'+contenuto],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=nome;document.body.appendChild(a);a.click();document.body.removeChild(a)}
 </script>
 </body>
 </html>
