@@ -895,7 +895,7 @@ async function salvaESinc(){
   var r=getForm();salvaMats();upsert(r);saveDB();updateCnt();editId=r.id;
   showAlert('Salvato. Invio su Drive...','info');
   var res=await uploadDrive(r);
-  if(res){r.syncedNas=true;r.syncedAt=new Date().toISOString();if(res!==true)r.driveFileId=res;upsert(r);saveDB();showAlert('✓ Inviato su Google Drive!','ok');}
+  if(res){r.syncedNas=true;r.syncedAt=new Date().toISOString();if(res!==true)r.driveFileId=res;upsert(r);saveDB();showAlert('✓ Inviato su Google Drive!','ok');resetForm();}
   else showAlert('Salvato in locale. Errore Drive — riprova dalla scheda Sync.','err');
 }
 function renderSync(){
