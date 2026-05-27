@@ -93,6 +93,13 @@ tr:last-child td{border-bottom:none}
 .alert.show{display:block}
 .alert-err{background:#fae8e8;color:#7a1a1a;border:1px solid #e8b8b8}
 .alert-ok{background:#e8f4e8;color:#2d6a2d;border:1px solid #b8ddb8}
+.operai-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;overflow-y:auto;padding:24px}
+.operai-overlay.open{display:block}
+.operai-modal{max-width:500px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.operaio-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px}
+.operaio-item:last-child{border-bottom:none}
+.operaio-del{background:none;border:none;color:#c0392b;cursor:pointer;font-size:18px;padding:2px 8px}
+.operaio-del:hover{background:#fae8e8;border-radius:4px}
 @media print{.topbar,.filter-bar,.kpi-grid,.charts-grid,.table-card,.overlay,.login-screen,#alert{display:none!important}.modal{box-shadow:none;border:none;max-width:100%;padding:0}body{background:#fff}}
 </style>
 </head>
@@ -115,6 +122,7 @@ tr:last-child td{border-bottom:none}
       <span class="topbar-lbl" id="conn-lbl">&#8212;</span>
       <span class="topbar-lbl" id="refresh-countdown" style="color:var(--text3)"></span>
       <button class="btn" style="padding:5px 12px;font-size:12px" onclick="caricaDati()">&#8635;</button>
+      <button class="btn" style="padding:5px 12px;font-size:12px" onclick="apriGestioneOperai()">👷 Operai</button>
     </div>
   </div>
   <div class="main">
@@ -173,6 +181,28 @@ tr:last-child td{border-bottom:none}
     <div id="mod-body"></div>
   </div>
 </div>
+<!-- MODALE OPERAI -->
+<div class="operai-overlay" id="operai-overlay" onclick="if(event.target===this)chiudiGestioneOperai()">
+  <div class="operai-modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div style="font-size:16px;font-weight:600">👷 Gestione Operai</div>
+      <button class="btn" onclick="chiudiGestioneOperai()">Chiudi</button>
+    </div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Gli operai inseriti qui appariranno nell'autocomplete del rapportino.</p>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <input type="text" id="nuovo-operaio" placeholder="NOME E COGNOME" 
+        style="flex:1;text-transform:uppercase"
+        oninput="this.value=this.value.toUpperCase()"
+        onkeydown="if(event.key==='Enter')aggiungiOperaio()">
+      <button class="btn btn-accent" onclick="aggiungiOperaio()">+ Aggiungi</button>
+    </div>
+    <div id="operai-lista"><div style="text-align:center;padding:20px;color:var(--text3)">Caricamento...</div></div>
+    <div style="margin-top:16px;display:flex;justify-content:flex-end">
+      <button class="btn btn-accent" onclick="salvaOperai()">💾 Salva lista</button>
+    </div>
+  </div>
+</div>
+
 <script>
 var SCRIPT_URL    = 'https://script.google.com/macros/s/AKfycbzKHF52x6L9ZnZHxVq1iENY1koRe1ynG_4u_HLuFD8uCXPQhZbqRkDZa3Z7nqemvw_G/exec';
 var DASH_PASSWORD = 'Resp2025!';
@@ -211,6 +241,77 @@ function csvRow(){return Array.prototype.slice.call(arguments).map(csvE).join(',
 function esportaCSV(){if(!filtrati.length){showAlert('Nessun dato.','err');return}var lines=[csvRow('N. Rapportino','Data','Cliente','Commessa','Indirizzo','Tecnico','Tipo','Avanzamento %','Ore Lavoro','Ore Viaggio','Ore Straord.')];filtrati.forEach(function(r){lines.push(csvRow(r.numero,r.data,r.cliente,r.commessa,r.indirizzo||'',r.tecnico,r.tipo,parseInt(r.stato)||0,fmt(r.totLav||0),fmt(r.totViag||0),fmt(r.totStr||0)))});lines.push(csvRow(''));lines.push(csvRow('TOTALI','','','','','','','',fmt(filtrati.reduce(function(s,r){return s+(r.totLav||0)},0)),fmt(filtrati.reduce(function(s,r){return s+(r.totViag||0)},0)),fmt(filtrati.reduce(function(s,r){return s+(r.totStr||0)},0))));scarica(lines.join('\n'),'rapportini_'+new Date().toISOString().slice(0,10)+'.csv');}
 function esportaDettaglioCSV(){if(!rapCorrente)return;var r=rapCorrente;var lines=[csvRow('RAPPORTINO N.'+(r.numero||''),'Data',r.data||''),csvRow('Cliente',r.cliente||'','Commessa',r.commessa||''),csvRow('Tecnico',r.tecnico||'','Tipo',r.tipo||''),csvRow('Indirizzo',r.indirizzo||'','Avanzamento',(parseInt(r.stato)||0)+'%'),csvRow('Descrizione',r.descrizione||''),csvRow(''),csvRow('MATERIALI'),csvRow('Materiale','Qty','Unità')];(r.materiali||[]).forEach(function(m){lines.push(csvRow(m.desc,m.qty,m.unit))});lines.push(csvRow(''),csvRow('OPERAI E ORE'),csvRow('Operaio','Lav.','Viag.','Str.'));(r.operai||[]).forEach(function(o){lines.push(csvRow(o.nome,fmt(o.oreLav),fmt(o.oreViag),fmt(o.oreStr)))});lines.push(csvRow(''),csvRow('Totale lavoro',fmt(r.totLav||0),'Viaggio',fmt(r.totViag||0),'Straord.',fmt(r.totStr||0)),csvRow(''),csvRow('Note',r.note||''));scarica(lines.join('\n'),(r.numero||'rapportino')+'.csv');}
 function scarica(contenuto,nome){var b=new Blob(['\uFEFF'+contenuto],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=nome;document.body.appendChild(a);a.click();document.body.removeChild(a)}
+
+
+// ── GESTIONE OPERAI ──────────────────────────────────────────────────
+var operaiLista = [];
+
+async function apriGestioneOperai() {
+  document.getElementById('operai-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  await caricaOperai();
+}
+
+function chiudiGestioneOperai() {
+  document.getElementById('operai-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+async function caricaOperai() {
+  try {
+    var res = await fetch(SCRIPT_URL + '?action=operai&_dc=' + Date.now());
+    var d = await res.json();
+    if(d.ok) { operaiLista = d.operai || []; renderOperai(); }
+  } catch(e) {
+    document.getElementById('operai-lista').innerHTML = '<div style="color:#c0392b;font-size:13px">Errore caricamento</div>';
+  }
+}
+
+function renderOperai() {
+  var w = document.getElementById('operai-lista');
+  if(!operaiLista.length) {
+    w.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">Nessun operaio inserito</div>';
+    return;
+  }
+  w.innerHTML = operaiLista.map(function(nome, i) {
+    return '<div class="operaio-item"><span style="font-weight:500">' + esc(nome) + '</span>' +
+      '<button class="operaio-del" onclick="rimuoviOperaio(' + i + ')">✕</button></div>';
+  }).join('');
+}
+
+function aggiungiOperaio() {
+  var input = document.getElementById('nuovo-operaio');
+  var nome = (input.value || '').trim().toUpperCase();
+  if(!nome) return;
+  if(operaiLista.includes(nome)) { alert('Operaio già presente!'); return; }
+  operaiLista.push(nome);
+  operaiLista.sort();
+  input.value = '';
+  renderOperai();
+  input.focus();
+}
+
+function rimuoviOperaio(i) {
+  if(!confirm('Rimuovere "' + operaiLista[i] + '"?')) return;
+  operaiLista.splice(i, 1);
+  renderOperai();
+}
+
+async function salvaOperai() {
+  try {
+    var res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain'},
+      body: JSON.stringify({_action: 'saveOperai', operai: operaiLista})
+    });
+    var d = await res.json();
+    if(d.ok) { showAlert('\u2713 Lista operai salvata!', 'ok'); }
+    else { showAlert('Errore: ' + (d.error||''), 'err'); }
+  } catch(e) {
+    showAlert('Errore: ' + e.message, 'err');
+  }
+}
+
 </script>
 </body>
 </html>
