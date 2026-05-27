@@ -389,10 +389,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
     </tr></thead><tbody id="op-body"></tbody></table>
     <div class="add-row">
       <div class="ac-wrap">
-        <input type="text" id="op-new-nome" placeholder="NOME OPERAIO..." autocomplete="off"
-          oninput="this.value=this.value.toUpperCase();acOp(this)" onblur="setTimeout(()=>closeAc('op-ac'),200)"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();addOp()}" style="text-transform:uppercase">
-        <div class="ac-list" id="op-ac"></div>
+        <select id="op-new-nome" style="font-size:14px">
+          <option value="">Seleziona operaio...</option>
+        </select>
       </div>
       <input type="number" id="op-new-lav"  placeholder="Lav."     class="fxs" min="0" step="0.5">
       <input type="number" id="op-new-viag" placeholder="Viag."    class="fxs" min="0" step="0.5">
@@ -613,7 +612,7 @@ async function caricaConfig(){
   try{
     const res=await fetch(SCRIPT_URL+'?action=config&_dc='+Date.now());
     const d=await res.json();
-    if(d.ok){cfg=d;operaiPred=d.operai||[];renderInfoCfg();setDot('ok');var s=el('info-stato');if(s)s.textContent='Connesso';}
+    if(d.ok){cfg=d;operaiPred=d.operai||[];renderInfoCfg();setDot('ok');var s=el('info-stato');if(s)s.textContent='Connesso';popolaSelectOperai();}
   }catch(e){
     setDot('err');var s=el('info-stato');if(s)s.textContent='Non raggiungibile';renderInfoCfg();
   }
@@ -624,6 +623,20 @@ function renderInfoCfg(){
   w.innerHTML=rows.map(function(r){return'<div class="set-row"><span class="set-label">'+r[0]+'</span><span class="set-val">'+esc(r[1])+'</span></div>'}).join('');
 }
 function aggiornaInfoUrl(){var u=el('info-url');if(u)u.textContent=SCRIPT_URL||'—';}
+
+// ── POPOLA SELECT OPERAI ─────────────────────────────
+function popolaSelectOperai() {
+  var sel = el('op-new-nome'); if(!sel) return;
+  var val = sel.value;
+  sel.innerHTML = '<option value="">Seleziona operaio...</option>';
+  (operaiPred||[]).forEach(function(nome) {
+    var opt = document.createElement('option');
+    opt.value = nome;
+    opt.textContent = nome;
+    sel.appendChild(opt);
+  });
+  if(val) sel.value = val;
+}
 
 // ── TABS ──────────────────────────────────────────────
 function showTab(t){
@@ -701,13 +714,13 @@ function renderMat(){
 
 // ── OPERAI ────────────────────────────────────────────
 function addOp(){
-  var nome=(v('op-new-nome')||'').toUpperCase();if(!nome)return;
+  var sel=el('op-new-nome');var nome=sel?sel.options[sel.selectedIndex]&&sel.options[sel.selectedIndex].value:'';nome=(nome||'').toUpperCase();if(!nome)return;
   operai.push({id:Date.now()+Math.random(),nome:nome,
     oreLav:parseFloat(el('op-new-lav').value)||0,
     oreViag:parseFloat(el('op-new-viag').value)||0,
     oreStr:parseFloat(el('op-new-str').value)||0});
-  el('op-new-nome').value='';el('op-new-lav').value='';el('op-new-viag').value='';el('op-new-str').value='';
-  el('op-new-nome').focus();renderOp();
+  el('op-new-nome').selectedIndex=0;el('op-new-lav').value='';el('op-new-viag').value='';el('op-new-str').value='';
+  el('op-new-lav').focus();renderOp();
 }
 function rmOp(id){operai=operai.filter(function(o){return o.id!==id});renderOp()}
 function syncOp(id,f,val){var o=operai.find(function(o){return o.id===id});if(o){o[f]=parseFloat(val)||0;aggTot()}}
