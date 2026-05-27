@@ -321,7 +321,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
         <input type="text" id="f-commessa" placeholder="es. C-2025-042"></div>
       <div class="fg"><label>Indirizzo intervento</label><input type="text" id="f-indirizzo" placeholder="Via, città"></div>
       <div class="fg"><label>Tecnico responsabile <span style="color:var(--red)">*</span></label>
-        <input type="text" id="f-tecnico" placeholder="Nome e cognome"></div>
+        <input type="text" id="f-tecnico" placeholder="NOME E COGNOME" oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase"></div>
       <div class="fg"><label>Tipo intervento</label>
         <select id="f-tipo">
           <option value="">Seleziona...</option>
@@ -367,9 +367,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
     </tr></thead><tbody id="mat-body"></tbody></table>
     <div class="add-row">
       <div class="ac-wrap">
-        <input type="text" id="mat-new-desc" placeholder="Nome materiale..." autocomplete="off"
-          oninput="acMat(this)" onblur="setTimeout(()=>closeAc('mat-ac'),200)"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();addMat()}">
+        <input type="text" id="mat-new-desc" placeholder="NOME MATERIALE..." autocomplete="off"
+          oninput="this.value=this.value.toUpperCase();acMat(this)" onblur="setTimeout(()=>closeAc('mat-ac'),200)"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addMat()}" style="text-transform:uppercase">
         <div class="ac-list" id="mat-ac"></div>
       </div>
       <input type="text" id="mat-new-qty" placeholder="Qtà" class="fxs">
@@ -389,9 +389,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
     </tr></thead><tbody id="op-body"></tbody></table>
     <div class="add-row">
       <div class="ac-wrap">
-        <input type="text" id="op-new-nome" placeholder="Nome operaio..." autocomplete="off"
-          oninput="acOp(this)" onblur="setTimeout(()=>closeAc('op-ac'),200)"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();addOp()}">
+        <input type="text" id="op-new-nome" placeholder="NOME OPERAIO..." autocomplete="off"
+          oninput="this.value=this.value.toUpperCase();acOp(this)" onblur="setTimeout(()=>closeAc('op-ac'),200)"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addOp()}" style="text-transform:uppercase">
         <div class="ac-list" id="op-ac"></div>
       </div>
       <input type="number" id="op-new-lav"  placeholder="Lav."     class="fxs" min="0" step="0.5">
@@ -682,7 +682,7 @@ function closeAc(listId){var l=el(listId);if(l)l.classList.remove('open')}
 
 // ── MATERIALI ─────────────────────────────────────────
 function addMat(){
-  var desc=v('mat-new-desc');if(!desc)return;
+  var desc=(v('mat-new-desc')||'').toUpperCase();if(!desc)return;
   materiali.push({id:Date.now()+Math.random(),desc:desc,qty:v('mat-new-qty'),unit:v('mat-new-unit')});
   el('mat-new-desc').value='';el('mat-new-qty').value='';el('mat-new-unit').value='';
   el('mat-new-desc').focus();renderMat();
@@ -701,7 +701,7 @@ function renderMat(){
 
 // ── OPERAI ────────────────────────────────────────────
 function addOp(){
-  var nome=v('op-new-nome');if(!nome)return;
+  var nome=(v('op-new-nome')||'').toUpperCase();if(!nome)return;
   operai.push({id:Date.now()+Math.random(),nome:nome,
     oreLav:parseFloat(el('op-new-lav').value)||0,
     oreViag:parseFloat(el('op-new-viag').value)||0,
@@ -735,7 +735,7 @@ function getForm(){
   var totStr=operai.reduce(function(s,o){return s+o.oreStr},0);
   return{id:editId||Date.now(),numero:v('f-num'),data:v('f-data'),
     cliente:v('f-cliente'),commessa:v('f-commessa'),indirizzo:v('f-indirizzo'),
-    tecnico:v('f-tecnico'),tipo:v('f-tipo'),stato:v('f-stato'),
+    tecnico:(v('f-tecnico')||'').toUpperCase(),tipo:v('f-tipo'),stato:v('f-stato'),
     descrizione:v('f-desc'),note:v('f-note'),
     materiali:materiali.slice(),operai:operai.slice(),totLav:totLav,totViag:totViag,totStr:totStr,
     azienda:cfg.azienda,piva:cfg.piva,tel:cfg.tel,email:cfg.email,
