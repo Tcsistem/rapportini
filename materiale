@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Richiesta Materiale Elettrico</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #555;
+    }
+    input[type="text"],
+    input[type="email"],
+    input[type="date"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    .material-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .material-row input,
+    .material-row select {
+      flex: 1;
+      min-width: 150px;
+    }
+    .material-row input[type="number"] {
+      flex: 0 0 100px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 12px 30px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 20px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .add-btn {
+      background-color: #2196F3;
+      padding: 8px 16px;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    .remove-btn {
+      background-color: #f44336;
+      padding: 8px 16px;
+      font-size: 14px;
+      flex: 0 0 auto;
+    }
+    fieldset {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    legend {
+      font-weight: bold;
+      color: #333;
+      padding: 0 10px;
+    }
+    .success-message {
+      display: none;
+      background-color: #d4edda;
+      color: #155724;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 20px;
+      text-align: center;
+    }
+    .error-message {
+      display: none;
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔌 Richiesta Materiale Elettrico</h1>
+    
+    <form id="materialForm">
+      <fieldset>
+        <legend>📋 Dati Commessa</legend>
+        
+        <div class="form-group">
+          <label for="nomeCommessa">Nome Commessa *</label>
+          <input type="text" id="nomeCommessa" name="nomeCommessa" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="cliente">Cliente *</label>
+          <input type="text" id="cliente" name="cliente" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="dataConsegna">Data Consegna *</label>
+          <input type="date" id="dataConsegna" name="dataConsegna" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="priorita">Priorità</label>
+          <select id="priorita" name="priorita">
+            <option value="Bassa">Bassa</option>
+            <option value="Media" selected>Media</option>
+            <option value="Alta">Alta</option>
+            <option value="Urgente">Urgente</option>
+          </select>
+        </div>
+      </fieldset>
+      
+      <fieldset>
+        <legend>👤 Dati Richiedente</legend>
+        
+        <div class="form-group">
+          <label for="nomeRichiedente">Nome Richiedente *</label>
+          <input type="text" id="nomeRichiedente" name="nomeRichiedente" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="emailRichiedente">Email *</label>
+          <input type="email" id="emailRichiedente" name="emailRichiedente" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="telefono">Telefono</label>
+          <input type="text" id="telefono" name="telefono">
+        </div>
+      </fieldset>
+      
+      <fieldset>
+        <legend>⚡ Materiale Elettrico</legend>
+        
+        <div id="materialiContainer">
+          <div class="material-row">
+            <input type="text" name="descrizione[]" required placeholder="Descrizione">
+            <input type="text" name="marca se necessario[]" required placeholder="marca">
+            <input type="number" name="quantita[]" required min="1" placeholder="Qtà">
+            <input type="text" name="unitaMisura[]" required placeholder="U.M.">
+            <button type="button" class="remove-btn" onclick="rimuoviRiga(this)">✕</button>
+          </div>
+        </div>
+        
+        <button type="button" class="add-btn" onclick="aggiungiRiga()">+ Aggiungi Materiale</button>
+        
+        <div class="form-group" style="margin-top: 20px;">
+          <label for="note">Note</label>
+          <textarea id="note" name="note" placeholder="Note aggiuntive..."></textarea>
+        </div>
+      </fieldset>
+      
+      <button type="submit" id="submitBtn">Invia Richiesta</button>
+    </form>
+    
+    <div id="successMessage" class="success-message">
+      ✓ Richiesta inviata con successo!
+    </div>
+    
+    <div id="errorMessage" class="error-message">
+      ✕ Errore: Riprova più tardi.
+    </div>
+  </div>
+
+  <script>
+    function aggiungiRiga() {
+      const container = document.getElementById('materialiContainer');
+      const nuovaRiga = document.createElement('div');
+      nuovaRiga.className = 'material-row';
+      nuovaRiga.innerHTML = `
+        <input type="text" name="descrizione[]" required placeholder="Descrizione">
+        <input type="text" name="marca se necessario[]" required placeholder="Marca">
+        <input type="number" name="quantita[]" required min="1" placeholder="Qtà">
+        <input type="text" name="unitaMisura[]" required placeholder="U.M.">
+        <button type="button" class="remove-btn" onclick="rimuoviRiga(this)">✕</button>
+      `;
+      container.appendChild(nuovaRiga);
+    }
+    
+    function rimuoviRiga(btn) {
+      const container = document.getElementById('materialiContainer');
+      if (container.children.length > 1) {
+        btn.parentElement.remove();
+      } else {
+        alert('Devi inserire almeno un materiale');
+      }
+    }
+    
+    document.getElementById('materialForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submitBtn');
+      const successMsg = document.getElementById('successMessage');
+      const errorMsg = document.getElementById('errorMessage');
+      
+      successMsg.style.display = 'none';
+      errorMsg.style.display = 'none';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Invio in corso...';
+      
+      const formData = new FormData(this);
+      const dati = {
+        nomeCommessa: formData.get('nomeCommessa'),
+        cliente: formData.get('cliente'),
+        dataConsegna: formData.get('dataConsegna'),
+        priorita: formData.get('priorita'),
+        nomeRichiedente: formData.get('nomeRichiedente'),
+        emailRichiedente: formData.get('emailRichiedente'),
+        telefono: formData.get('telefono'),
+        note: formData.get('note'),
+        materiali: []
+      };
+      
+      const descrizioni = formData.getAll('descrizione[]');
+      const categorie = formData.getAll('marca[]');
+      const quantita = formData.getAll('quantita[]');
+      const unitaMisura = formData.getAll('unitaMisura[]');
+      
+      for (let i = 0; i < descrizioni.length; i++) {
+        dati.materiali.push({
+          descrizione: descrizioni[i],
+          marca: categorie[i],
+          quantita: quantita[i],
+          unitaMisura: unitaMisura[i]
+        });
+      }
+      
+      google.script.run
+        .withSuccessHandler(function(response) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Invia Richiesta';
+          
+          if (response.success) {
+            successMsg.style.display = 'block';
+            document.getElementById('materialForm').reset();
+          } else {
+            errorMsg.textContent = '✕ Errore: ' + response.message;
+            errorMsg.style.display = 'block';
+          }
+        })
+        .withFailureHandler(function(error) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Invia Richiesta';
+          errorMsg.textContent = '✕ Errore: ' + error.message;
+          errorMsg.style.display = 'block';
+        })
+        .inviaRichiestaMateriale(dati);
+    });
+  </script>
+</body>
+</html>
