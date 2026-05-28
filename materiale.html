@@ -166,8 +166,8 @@
         </div>
         
         <div class="form-group">
-          <label for="emailRichiedente">Email *</label>
-          <input type="email" id="emailRichiedente" name="emailRichiedente" required>
+          <label for="emailRichiedente">Email</label>
+          <input type="text" id="emailRichiedente" name="emailRichiedente" placeholder="Email (opzionale)">
         </div>
         
         <div class="form-group">
@@ -182,7 +182,7 @@
         <div id="materialiContainer">
           <div class="material-row">
             <input type="text" name="descrizione[]" required placeholder="Descrizione">
-            <input type="text" name="marca se necessario[]" required placeholder="marca">
+            <input type="text" name="categoria[]" required placeholder="Categoria">
             <input type="number" name="quantita[]" required min="1" placeholder="Qtà">
             <input type="text" name="unitaMisura[]" required placeholder="U.M.">
             <button type="button" class="remove-btn" onclick="rimuoviRiga(this)">✕</button>
@@ -216,7 +216,7 @@
       nuovaRiga.className = 'material-row';
       nuovaRiga.innerHTML = `
         <input type="text" name="descrizione[]" required placeholder="Descrizione">
-        <input type="text" name="marca se necessario[]" required placeholder="Marca">
+        <input type="text" name="categoria[]" required placeholder="Categoria">
         <input type="number" name="quantita[]" required min="1" placeholder="Qtà">
         <input type="text" name="unitaMisura[]" required placeholder="U.M.">
         <button type="button" class="remove-btn" onclick="rimuoviRiga(this)">✕</button>
@@ -252,21 +252,21 @@
         dataConsegna: formData.get('dataConsegna'),
         priorita: formData.get('priorita'),
         nomeRichiedente: formData.get('nomeRichiedente'),
-        emailRichiedente: formData.get('emailRichiedente'),
-        telefono: formData.get('telefono'),
-        note: formData.get('note'),
+        emailRichiedente: formData.get('emailRichiedente') || 'Non specificata',
+        telefono: formData.get('telefono') || 'Non specificato',
+        note: formData.get('note') || '',
         materiali: []
       };
       
       const descrizioni = formData.getAll('descrizione[]');
-      const categorie = formData.getAll('marca[]');
+      const categorie = formData.getAll('categoria[]');
       const quantita = formData.getAll('quantita[]');
       const unitaMisura = formData.getAll('unitaMisura[]');
       
       for (let i = 0; i < descrizioni.length; i++) {
         dati.materiali.push({
           descrizione: descrizioni[i],
-          marca: categorie[i],
+          categoria: categorie[i],
           quantita: quantita[i],
           unitaMisura: unitaMisura[i]
         });
