@@ -751,7 +751,7 @@ function getForm(){
     tecnico:(v('f-tecnico')||'').toUpperCase(),tipo:v('f-tipo'),stato:v('f-stato'),
     descrizione:v('f-desc'),note:v('f-note'),
     materiali:materiali.slice(),operai:operai.slice(),totLav:totLav,totViag:totViag,totStr:totStr,
-    azienda:cfg.azienda,piva:cfg.piva,tel:cfg.tel,email:cfg.email,
+    azienda:cfg.azienda,piva:cfg.piva,tel:cfg.tel,email:cfg.email,logo:cfg.logo||'',
     syncedNas:false,createdAt:new Date().toISOString()};
 }
 function resetForm(){
@@ -827,8 +827,9 @@ function mostraAnteprima(){
   var df=r.data?new Date(r.data+'T00:00:00').toLocaleDateString('it-IT'):'—';
   var rM=r.materiali.map(function(m){return'<tr><td>'+esc(m.desc)+'</td><td style="text-align:center">'+esc(m.qty)+'</td><td style="text-align:center">'+esc(m.unit)+'</td></tr>'}).join('');
   var rO=r.operai.map(function(o){return'<tr><td>'+esc(o.nome)+'</td><td style="text-align:center">'+fmt(o.oreLav)+'</td><td style="text-align:center">'+fmt(o.oreViag)+'</td><td style="text-align:center">'+fmt(o.oreStr)+'</td></tr>'}).join('');
+  var logoHtml = r.logo ? '<img src="'+r.logo+'" style="height:60px;max-width:180px;object-fit:contain;display:block;margin-bottom:4px">' : '';
   var h='<div class="pr-header">'+
-    '<div><div class="pr-azienda">'+esc(r.azienda||'Azienda')+'</div>'+
+    '<div>'+logoHtml+'<div class="pr-azienda">'+esc(r.azienda||'Azienda')+'</div>'+
     '<div class="pr-sub">'+esc([r.piva,r.tel,r.email].filter(Boolean).join(' · '))+'</div></div>'+
     '<div class="pr-meta"><span style="font-size:12px">Rapportino n.</span><strong>'+esc(r.numero||'—')+'</strong>'+
     '<div style="margin-top:3px;font-size:13px">'+df+'</div></div></div>'+
