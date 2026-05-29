@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Storico Richieste Materiali</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f7fa;margin:0;padding:20px;color:#333}
+    .container{max-width:1400px;margin:0 auto}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+    h1{color:#1a73e8;margin:0;font-size:24px}
+    .btn{padding:10px 18px;border:none;border-radius:4px;cursor:pointer;font-size:14px;font-weight:500;transition:all .2s}
+    .btn-primary{background:#1a73e8;color:#fff}
+    .btn-primary:hover{background:#1557b0}
+    .btn-secondary{background:#fff;color:#1a73e8;border:1px solid #1a73e8}
+    .btn-secondary:hover{background:#e8f0fe}
+    .btn-danger{background:#fce8e6;color:#c5221f;padding:6px 10px;font-size:12px;border:none;border-radius:4px;cursor:pointer}
+    .btn-danger:hover{background:#f9c8c4}
+    .btn-icon{background:none;border:none;cursor:pointer;font-size:18px;padding:4px 8px;border-radius:4px}
+    .btn-icon:hover{background:#f1f3f4}
+
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+    .stat-card{background:#fff;padding:18px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);border-left:4px solid #1a73e8}
+    .stat-card .label{font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+    .stat-card .value{font-size:28px;font-weight:700;color:#1a73e8;margin-top:4px;line-height:1}
+    .stat-card.da-evadere{border-left-color:#c5221f}
+    .stat-card.da-evadere .value{color:#c5221f}
+    .stat-card.in-corso{border-left-color:#b06000}
+    .stat-card.in-corso .value{color:#b06000}
+    .stat-card.completati{border-left-color:#137333}
+    .stat-card.completati .value{color:#137333}
+    .stat-card.urgenti{border-left-color:#e8710a}
+    .stat-card.urgenti .value{color:#e8710a}
+
+    .filters{background:#fff;padding:15px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:15px;display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}
+    .filters input,.filters select{padding:9px 12px;border:1px solid #dadce0;border-radius:4px;font-size:14px;font-family:inherit;width:100%}
+    .filters input:focus,.filters select:focus{outline:none;border-color:#1a73e8;box-shadow:0 0 0 2px rgba(26,115,232,.2)}
+
+    .table-wrapper{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow-x:auto}
+    table{width:100%;border-collapse:collapse;min-width:900px}
+    th{background:#f8f9fa;text-align:left;padding:12px;font-size:12px;font-weight:600;color:#5f6368;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid #e0e0e0;white-space:nowrap}
+    td{padding:12px;border-bottom:1px solid #f1f3f4;font-size:14px;vertical-align:middle}
+    tr:hover{background:#fafbfc}
+    tr.urgentissimo{background:#fff5f5}
+    tr.urgentissimo:hover{background:#ffe5e5}
+
+    .badge{display:inline-block;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+    .badge-normale{background:#e6f4ea;color:#137333}
+    .badge-urgente{background:#fef7e0;color:#b06000}
+    .badge-urgentissimo{background:#fce8e6;color:#c5221f}
+
+    .stato-select{padding:5px 8px;border:1px solid #dadce0;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase;cursor:pointer;letter-spacing:.3px}
+    .stato-Da-evadere{background:#fce8e6;color:#c5221f;border-color:#fce8e6}
+    .stato-In-corso{background:#fef7e0;color:#b06000;border-color:#fef7e0}
+    .stato-Completato{background:#e6f4ea;color:#137333;border-color:#e6f4ea}
+    .stato-Annullato{background:#f1f3f4;color:#5f6368;border-color:#f1f3f4}
+
+    .empty,.loading-state{text-align:center;padding:60px 20px;color:#888}
+    .empty .icon,.loading-state .icon{font-size:48px;margin-bottom:10px}
+    .spinner{border:3px solid #f3f3f3;border-top:3px solid #1a73e8;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;margin:0 auto 10px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;padding:20px;overflow-y:auto}
+    .modal.show{display:flex;align-items:flex-start;justify-content:center}
+    .modal-content{background:#fff;border-radius:8px;max-width:700px;width:100%;padding:25px;margin-top:40px;max-height:calc(100vh - 80px);overflow-y:auto}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;padding-bottom:12px;border-bottom:1px solid #eee}
+    .modal-header h2{margin:0;color:#1a73e8;font-size:20px}
+    .close-btn{background:none;border:none;font-size:24px;cursor:pointer;color:#666;padding:0 8px}
+    .close-btn:hover{color:#000}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:15px}
+    .info-item{padding:8px 12px;background:#f8f9fa;border-radius:4px}
+    .info-item .lbl{font-size:11px;color:#666;text-transform:uppercase;font-weight:600}
+    .info-item .val{font-size:14px;margin-top:2px;font-weight:500}
+    .mat-list{margin-top:10px}
+    .mat-item{padding:10px;background:#f8f9fa;border-left:3px solid #1a73e8;margin-bottom:6px;border-radius:0 4px 4px 0;font-size:13px}
+    .note-box{background:#fff8e1;padding:12px;border-left:4px solid #f9ab00;border-radius:0 4px 4px 0;margin-top:10px;font-size:13px;white-space:pre-wrap}
+    .alert{padding:12px 16px;border-radius:4px;margin-bottom:15px;font-size:14px;display:none}
+    .alert.show{display:block}
+    .alert-success{background:#e6f4ea;color:#137333;border-left:4px solid #137333}
+    .alert-error{background:#fce8e6;color:#c5221f;border-left:4px solid #c5221f}
+
+    @media(max-width:700px){
+      body{padding:10px}
+      .filters{grid-template-columns:1fr}
+      h1{font-size:20px}
+      .info-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📊 Storico Richieste Materiali</h1>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a href="richiesta-materiali.html" class="btn btn-secondary" style="text-decoration:none">+ Nuova richiesta</a>
+        <button class="btn btn-primary" onclick="caricaDati()">🔄 Aggiorna</button>
+      </div>
+    </header>
+
+    <div id="alert" class="alert"></div>
+
+    <div class="stats">
+      <div class="stat-card"><div class="label">Totale</div><div class="value" id="statTot">0</div></div>
+      <div class="stat-card da-evadere"><div class="label">Da evadere</div><div class="value" id="statDaEvadere">0</div></div>
+      <div class="stat-card in-corso"><div class="label">In corso</div><div class="value" id="statInCorso">0</div></div>
+      <div class="stat-card completati"><div class="label">Completati</div><div class="value" id="statCompletati">0</div></div>
+      <div class="stat-card urgenti"><div class="label">Urgenti aperti</div><div class="value" id="statUrgenti">0</div></div>
+    </div>
+
+    <div class="filters">
+      <input type="search" id="search" placeholder="🔍 Cerca commessa, cantiere, richiedente, materiale...">
+      <select id="filterUrgenza">
+        <option value="">Tutte le urgenze</option>
+        <option value="NORMALE">Normale</option>
+        <option value="URGENTE">Urgente</option>
+        <option value="URGENTISSIMO">Urgentissimo</option>
+      </select>
+      <select id="filterStato">
+        <option value="">Tutti gli stati</option>
+        <option value="Da evadere">Da evadere</option>
+        <option value="In corso">In corso</option>
+        <option value="Completato">Completato</option>
+        <option value="Annullato">Annullato</option>
+      </select>
+    </div>
+
+    <div class="table-wrapper">
+      <div id="loading" class="loading-state"><div class="spinner"></div>Caricamento in corso...</div>
+      <div id="empty" class="empty" style="display:none"><div class="icon">📭</div>Nessuna richiesta trovata</div>
+      <table id="tabella" style="display:none">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Commessa</th>
+            <th>Cantiere</th>
+            <th>Richiedente</th>
+            <th>Urgenza</th>
+            <th>Consegna</th>
+            <th>Art.</th>
+            <th>Stato</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="modal" class="modal" onclick="if(event.target===this)chiudiModal()">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Dettagli richiesta</h2>
+        <button class="close-btn" onclick="chiudiModal()">✕</button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    // ====== CONFIGURAZIONE — MODIFICA QUESTE DUE RIGHE ======
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwZfqQYlX5ESNT581caNx6sQHrfM-2S7ClcUHjEMWhOUsaz2ZJ3wuJ78SfKpoLPZ5P2hA/exec';
+    const TOKEN = 'tcs-2026-xK9pQ2mN';
+    // =========================================================
+
+    let datiCompleti = [];
+
+    function alertMsg(m,t){
+      const a=document.getElementById('alert');
+      a.textContent=m; a.className='alert show alert-'+t;
+      if(t==='success') setTimeout(()=>a.classList.remove('show'),3000);
+    }
+
+    function formatData(iso){
+      if(!iso) return '-';
+      const d = new Date(iso);
+      if(isNaN(d)) return iso;
+      return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
+    }
+    function formatDataOra(iso){
+      if(!iso) return '-';
+      const d = new Date(iso);
+      if(isNaN(d)) return iso;
+      return d.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    }
+
+    async function caricaDati(){
+      document.getElementById('loading').style.display='block';
+      document.getElementById('tabella').style.display='none';
+      document.getElementById('empty').style.display='none';
+      try {
+        const r = await fetch(APPS_SCRIPT_URL, {
+          method:'POST',
+          body: JSON.stringify({action:'lista', token: TOKEN})
+        });
+        const res = await r.json();
+        if(!res.success){ alertMsg('Errore: '+res.message,'error'); return; }
+        datiCompleti = res.dati || [];
+        aggiornaStats();
+        applicaFiltri();
+      } catch(e) {
+        alertMsg('Errore di rete: '+e.message,'error');
+      } finally {
+        document.getElementById('loading').style.display='none';
+      }
+    }
+
+    function aggiornaStats(){
+      const tot = datiCompleti.length;
+      const daEvadere = datiCompleti.filter(d => (d.Stato||'Da evadere') === 'Da evadere').length;
+      const inCorso = datiCompleti.filter(d => d.Stato === 'In corso').length;
+      const completati = datiCompleti.filter(d => d.Stato === 'Completato').length;
+      const urgenti = datiCompleti.filter(d => (d.Urgenza === 'URGENTE' || d.Urgenza === 'URGENTISSIMO') && (d.Stato||'Da evadere') !== 'Completato' && d.Stato !== 'Annullato').length;
+      statTot.textContent = tot;
+      statDaEvadere.textContent = daEvadere;
+      statInCorso.textContent = inCorso;
+      statCompletati.textContent = completati;
+      statUrgenti.textContent = urgenti;
+    }
+
+    function applicaFiltri(){
+      const q = search.value.trim().toLowerCase();
+      const fU = filterUrgenza.value;
+      const fS = filterStato.value;
+      const filtrati = datiCompleti.filter(d => {
+        if(fU && d.Urgenza !== fU) return false;
+        if(fS && (d.Stato || 'Da evadere') !== fS) return false;
+        if(q){
+          const blob = [d.Commessa, d.Cantiere, d.Richiedente, d.Email, d.Dettagli, d.Note].join(' ').toLowerCase();
+          if(!blob.includes(q)) return false;
+        }
+        return true;
+      });
+      renderTabella(filtrati);
+    }
+
+    function renderTabella(dati){
+      const tbody = document.getElementById('rows');
+      if(dati.length === 0){
+        document.getElementById('tabella').style.display='none';
+        document.getElementById('empty').style.display='block';
+        return;
+      }
+      document.getElementById('tabella').style.display='table';
+      document.getElementById('empty').style.display='none';
+
+      tbody.innerHTML = dati.map(d => {
+        const urg = d.Urgenza || 'NORMALE';
+        const stato = d.Stato || 'Da evadere';
+        const statoClass = 'stato-' + stato.replace(/ /g,'-');
+        const rowClass = urg === 'URGENTISSIMO' && stato !== 'Completato' && stato !== 'Annullato' ? 'urgentissimo' : '';
+        return `
+          <tr class="${rowClass}">
+            <td>${formatDataOra(d.Timestamp)}</td>
+            <td><b>${escapeHtml(d.Commessa||'-')}</b></td>
+            <td>${escapeHtml(d.Cantiere||'-')}</td>
+            <td>${escapeHtml(d.Richiedente||'-')}</td>
+            <td><span class="badge badge-${urg.toLowerCase()}">${urg}</span></td>
+            <td>${d['Consegna richiesta'] ? formatData(d['Consegna richiesta']) : '-'}</td>
+            <td style="text-align:center">${d['N. articoli']||0}</td>
+            <td>
+              <select class="stato-select ${statoClass}" data-riga="${d.riga}" onchange="cambiaStato(this)">
+                <option ${stato==='Da evadere'?'selected':''}>Da evadere</option>
+                <option ${stato==='In corso'?'selected':''}>In corso</option>
+                <option ${stato==='Completato'?'selected':''}>Completato</option>
+                <option ${stato==='Annullato'?'selected':''}>Annullato</option>
+              </select>
+            </td>
+            <td>
+              <button class="btn-icon" onclick='apriDettagli(${JSON.stringify(d).replace(/'/g,"&apos;")})' title="Dettagli">👁️</button>
+              <button class="btn-icon" onclick="eliminaRichiesta(${d.riga})" title="Elimina">🗑️</button>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    function escapeHtml(s){
+      if(s == null) return '';
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    async function cambiaStato(sel){
+      const riga = sel.dataset.riga;
+      const stato = sel.value;
+      sel.className = 'stato-select stato-' + stato.replace(/ /g,'-');
+      try {
+        const r = await fetch(APPS_SCRIPT_URL, {
+          method:'POST',
+          body: JSON.stringify({action:'updateStato', riga: parseInt(riga), stato: stato, token: TOKEN})
+        });
+        const res = await r.json();
+        if(!res.success){ alertMsg('Errore aggiornamento: '+res.message,'error'); return; }
+        const item = datiCompleti.find(d => d.riga == riga);
+        if(item) item.Stato = stato;
+        aggiornaStats();
+      } catch(e) {
+        alertMsg('Errore di rete: '+e.message,'error');
+      }
+    }
+
+    async function eliminaRichiesta(riga){
+      if(!confirm('Eliminare definitivamente questa richiesta dallo storico?')) return;
+      try {
+        const r = await fetch(APPS_SCRIPT_URL, {
+          method:'POST',
+          body: JSON.stringify({action:'elimina', riga: riga, token: TOKEN})
+        });
+        const res = await r.json();
+        if(!res.success){ alertMsg('Errore: '+res.message,'error'); return; }
+        alertMsg('Richiesta eliminata','success');
+        caricaDati();
+      } catch(e) {
+        alertMsg('Errore di rete: '+e.message,'error');
+      }
+    }
+
+    function apriDettagli(d){
+      const urg = d.Urgenza || 'NORMALE';
+      const stato = d.Stato || 'Da evadere';
+      const materiali = (d.Dettagli || '').split(' | ').filter(x=>x.trim());
+
+      document.getElementById('modalBody').innerHTML = `
+        <div class="info-grid">
+          <div class="info-item"><div class="lbl">Commessa</div><div class="val">${escapeHtml(d.Commessa)}</div></div>
+          <div class="info-item"><div class="lbl">Cantiere</div><div class="val">${escapeHtml(d.Cantiere)}</div></div>
+          <div class="info-item"><div class="lbl">Richiedente</div><div class="val">${escapeHtml(d.Richiedente)}</div></div>
+          <div class="info-item"><div class="lbl">Email</div><div class="val">${escapeHtml(d.Email||'-')}</div></div>
+          <div class="info-item"><div class="lbl">Data richiesta</div><div class="val">${formatDataOra(d.Timestamp)}</div></div>
+          <div class="info-item"><div class="lbl">Consegna richiesta</div><div class="val">${d['Consegna richiesta']?formatData(d['Consegna richiesta']):'-'}</div></div>
+          <div class="info-item"><div class="lbl">Urgenza</div><div class="val"><span class="badge badge-${urg.toLowerCase()}">${urg}</span></div></div>
+          <div class="info-item"><div class="lbl">Stato</div><div class="val"><span class="stato-select stato-${stato.replace(/ /g,'-')}" style="display:inline-block;padding:3px 8px">${stato}</span></div></div>
+        </div>
+        <h3 style="margin-top:20px;font-size:15px;color:#1a73e8">Materiali (${materiali.length})</h3>
+        <div class="mat-list">
+          ${materiali.map(m => `<div class="mat-item">${escapeHtml(m)}</div>`).join('')}
+        </div>
+        ${d.Note ? `<h3 style="margin-top:20px;font-size:15px;color:#1a73e8">Note</h3><div class="note-box">${escapeHtml(d.Note)}</div>` : ''}
+      `;
+      document.getElementById('modal').classList.add('show');
+    }
+
+    function chiudiModal(){
+      document.getElementById('modal').classList.remove('show');
+    }
+
+    // Event listeners filtri
+    search.addEventListener('input', applicaFiltri);
+    filterUrgenza.addEventListener('change', applicaFiltri);
+    filterStato.addEventListener('change', applicaFiltri);
+
+    // ESC chiude modal
+    document.addEventListener('keydown', e => { if(e.key === 'Escape') chiudiModal(); });
+
+    // Carica al boot
+    caricaDati();
+  </script>
+</body>
+</html>
