@@ -570,6 +570,7 @@ const K_DAT='rap_dat_v5', K_MATS='rap_mats_v2';
   }catch(e){}
   setToday(); autoNum(); updateCnt(); aggiornaInfoUrl();
   await caricaConfig();
+  await autoNum();
   testConn();
 })();
 
@@ -632,7 +633,19 @@ function setDot(s){
 
 // ── DATA / NUMERO ─────────────────────────────────────
 function setToday(){var d=el('f-data');if(d&&!d.value)d.value=new Date().toISOString().split('T')[0]}
-function autoNum(){var n=el('f-num');if(n&&!n.value){var y=new Date().getFullYear();n.value=y+'-'+String(rapportini.length+1).padStart(3,'0')}}
+async function autoNum(){
+  var n=el('f-num');
+  if(n&&!n.value){
+    try{
+      var res=await fetch(SCRIPT_URL+'?action=nextnum&_dc='+Date.now());
+      var d=await res.json();
+      if(d.ok && d.numero) n.value=d.numero;
+      else{var y=new Date().getFullYear();n.value=y+'-'+String(rapportini.length+1).padStart(3,'0');}
+    }catch(e){
+      var y=new Date().getFullYear();n.value=y+'-'+String(rapportini.length+1).padStart(3,'0');
+    }
+  }
+}
 function updateCnt(){var c=el('cnt');if(c)c.textContent=rapportini.length}
 
 // ── AUTOCOMPLETE ──────────────────────────────────────
