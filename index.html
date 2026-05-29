@@ -298,7 +298,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 <nav class="nav">
   <button class="nav-tab active" onclick="showTab('nuovo')">Nuovo</button>
   <button class="nav-tab" onclick="showTab('lista')">Bozze <span class="nav-badge" id="cnt">0</span></button>
-  <button class="nav-tab" onclick="showTab('drive')">Da Drive</button>
 
   <button class="nav-tab" onclick="showTab('anteprima')">Anteprima</button>
   <button class="nav-tab" onclick="showTab('sync')">Sync</button>
@@ -390,9 +389,12 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
     </tr></thead><tbody id="op-body"></tbody></table>
     <div class="add-row">
       <div class="ac-wrap">
-        <select id="op-new-nome" style="font-size:14px">
-          <option value="">Seleziona operaio...</option>
-        </select>
+        <input type="text" id="op-new-nome" placeholder="Cerca operaio..." autocomplete="off"
+          oninput="this.value=this.value.toUpperCase();acOp(this)"
+          onblur="setTimeout(()=>closeAc('op-ac'),200)"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addOp()}"
+          style="text-transform:uppercase">
+        <div class="ac-list" id="op-ac"></div>
       </div>
       <input type="number" id="op-new-lav"  placeholder="Lav."     class="fxs" min="0" step="0.5">
       <input type="number" id="op-new-viag" placeholder="Viag."    class="fxs" min="0" step="0.5">
@@ -436,24 +438,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
   </div>
 </div>
 
-<!-- DA DRIVE -->
-<div id="tab-drive" class="section">
-  <div class="card">
-    <div class="card-head">
-      <span>Rapportini su Google Drive</span>
-      <button class="btn btn-blue" style="padding:7px 14px;font-size:13px" onclick="caricaListaDrive()">↻ Aggiorna</button>
-    </div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Clicca su un rapportino per caricarlo nel form e modificarlo.</p>
-    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <div class="fg" style="flex:1;min-width:130px"><label>Tecnico</label>
-        <input type="text" id="drive-tecnico" placeholder="Filtra..." oninput="filtraDrive()"></div>
-      <div class="fg" style="flex:1;min-width:130px"><label>Cliente</label>
-        <input type="text" id="drive-cliente" placeholder="Filtra..." oninput="filtraDrive()"></div>
-    </div>
-    <div id="drive-lista"><div class="empty">Premi Aggiorna per caricare i rapportini.</div></div>
-    <div style="padding:10px 0 0;font-size:13px;color:var(--text2)" id="drive-summary"></div>
-  </div>
-</div>
 
 <!-- SYNC -->
 <div id="tab-sync" class="section">
@@ -612,23 +596,14 @@ function aggiornaInfoUrl(){var u=el('info-url');if(u)u.textContent=SCRIPT_URL||'
 
 // ── POPOLA SELECT OPERAI ─────────────────────────────
 function popolaSelectOperai() {
-  var sel = el('op-new-nome'); if(!sel) return;
-  var val = sel.value;
-  sel.innerHTML = '<option value="">Seleziona operaio...</option>';
-  (operaiPred||[]).forEach(function(nome) {
-    var opt = document.createElement('option');
-    opt.value = nome;
-    opt.textContent = nome;
-    sel.appendChild(opt);
-  });
-  if(val) sel.value = val;
+  // operaiPred è già usato da acOp per l'autocomplete
 }
 
 // ── TABS ──────────────────────────────────────────────
 function showTab(t){
   document.querySelectorAll('.nav-tab').forEach(function(b){b.classList.remove('active')});
   document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active')});
-  var tabs=['nuovo','lista','drive','anteprima','sync','info','geobadge'];
+  var tabs=['nuovo','lista','anteprima','sync','info','geobadge'];
   var idx=tabs.indexOf(t);
   if(idx>=0) document.querySelectorAll('.nav-tab')[idx].classList.add('active');
   var tab=el('tab-'+t);if(tab)tab.classList.add('active');
@@ -636,7 +611,6 @@ function showTab(t){
   if(t==='sync')renderSync();
   if(t==='info'){caricaConfig();aggiornaInfoUrl();}
   if(t==='geobadge'){caricaDatiGeobadge();}
-  if(t==='drive'){caricaListaDrive();}
 }
 
 // ── ALERT / LOG / DOT ────────────────────────────────
@@ -700,13 +674,13 @@ function renderMat(){
 
 // ── OPERAI ────────────────────────────────────────────
 function addOp(){
-  var sel=el('op-new-nome');var nome=sel?sel.options[sel.selectedIndex]&&sel.options[sel.selectedIndex].value:'';nome=(nome||'').toUpperCase();if(!nome)return;
+  var nome=(v('op-new-nome')||'').toUpperCase();if(!nome)return;
   operai.push({id:Date.now()+Math.random(),nome:nome,
     oreLav:parseFloat(el('op-new-lav').value)||0,
     oreViag:parseFloat(el('op-new-viag').value)||0,
     oreStr:parseFloat(el('op-new-str').value)||0});
-  el('op-new-nome').selectedIndex=0;el('op-new-lav').value='';el('op-new-viag').value='';el('op-new-str').value='';
-  el('op-new-lav').focus();renderOp();
+  el('op-new-nome').value='';el('op-new-lav').value='';el('op-new-viag').value='';el('op-new-str').value='';
+  el('op-new-nome').focus();renderOp();
 }
 function rmOp(id){operai=operai.filter(function(o){return o.id!==id});renderOp()}
 function syncOp(id,f,val){var o=operai.find(function(o){return o.id===id});if(o){o[f]=parseFloat(val)||0;aggTot()}}
