@@ -80,9 +80,9 @@
     .alert-error{background:#fce8e6;color:#c5221f;border-left:4px solid #c5221f}
     .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:15px;border-top:1px solid #eee}
 
-    /* PDF template — fuori schermo, usato solo per la generazione */
-    #pdfContainer{position:absolute;left:-9999px;top:0;width:210mm;background:#fff}
-    .pdf-page{width:210mm;padding:15mm;font-family:Arial,sans-serif;color:#222;font-size:11pt;background:#fff}
+    /* PDF template — fuori schermo, usato solo per la generazione (A4 orizzontale) */
+    #pdfContainer{position:absolute;left:-9999px;top:0;width:297mm;background:#fff}
+    .pdf-page{width:297mm;padding:12mm 15mm;font-family:Arial,sans-serif;color:#222;font-size:11pt;background:#fff}
     .pdf-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a73e8;padding-bottom:10px;margin-bottom:15px}
     .pdf-header h1{color:#1a73e8;font-size:20pt;margin:0}
     .pdf-header .meta{text-align:right;font-size:9pt;color:#666}
@@ -183,7 +183,7 @@
     // ====== CONFIGURAZIONE — MODIFICA QUESTE RIGHE ======
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZfqQYlX5ESNT581caNx6sQHrfM-2S7ClcUHjEMWhOUsaz2ZJ3wuJ78SfKpoLPZ5P2hA/exec";
     const TOKEN = "tcs-2026-xK9pQ2mN";
-    const NOME_AZIENDA = "T.C.S. S.r.l.";  // appare nell intestazione del PDF
+    const NOME_AZIENDA = "T.C.S. S.r.l.";  // appare nellintestazione del PDF
     // =====================================================
 
     let datiCompleti = [];
@@ -485,7 +485,7 @@
         filename: filename,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
         pagebreak: { mode: ['css', 'legacy'] }
       };
 
