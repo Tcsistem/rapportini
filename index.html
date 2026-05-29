@@ -662,13 +662,13 @@ function opInputHandler(input){
     : src.slice(0,8);
   if(!hits.length){list.classList.remove('open');return}
   list.innerHTML = hits.map(function(n){
-    return '<div class="ac-item" onmousedown="selAcOp(''+esc(n)+'')">'+esc(n)+'</div>';
+    return '<div class="ac-item" onmousedown="selAcOp(\'' + esc(n) + '\')">'+esc(n)+'</div>';
   }).join('');
   list.classList.add('open');
 }
 function selAcOp(val){
-  var i=el('op-new-nome');
-  if(i){i.value=val;}
+  var inp = el('op-new-nome');
+  if(inp){ inp.value = val; }
   closeAc('op-ac');
 }
 function selAc(inputId,listId,val){var i=el(inputId);if(i)i.value=val;closeAc(listId)}
