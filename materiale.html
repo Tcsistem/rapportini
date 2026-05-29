@@ -1,298 +1,174 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
-  <base target="_top">
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Richiesta Materiale Elettrico</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 800px;
-      margin: 40px auto;
-      padding: 20px;
-      background-color: #f5f5f5;
-    }
-    .container {
-      background-color: white;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    h1 {
-      color: #333;
-      text-align: center;
-      margin-bottom: 30px;
-    }
-    .form-group {
-      margin-bottom: 20px;
-    }
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: bold;
-      color: #555;
-    }
-    input[type="text"],
-    input[type="email"],
-    input[type="date"],
-    select,
-    textarea {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 14px;
-      box-sizing: border-box;
-    }
-    textarea {
-      min-height: 100px;
-      resize: vertical;
-    }
-    .material-row {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-    }
-    .material-row input,
-    .material-row select {
-      flex: 1;
-      min-width: 150px;
-    }
-    .material-row input[type="number"] {
-      flex: 0 0 100px;
-    }
-    button {
-      background-color: #4CAF50;
-      color: white;
-      padding: 12px 30px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 16px;
-      margin-top: 20px;
-    }
-    button:hover {
-      background-color: #45a049;
-    }
-    button:disabled {
-      background-color: #cccccc;
-      cursor: not-allowed;
-    }
-    .add-btn {
-      background-color: #2196F3;
-      padding: 8px 16px;
-      font-size: 14px;
-      margin-top: 10px;
-    }
-    .remove-btn {
-      background-color: #f44336;
-      padding: 8px 16px;
-      font-size: 14px;
-      flex: 0 0 auto;
-    }
-    fieldset {
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-    legend {
-      font-weight: bold;
-      color: #333;
-      padding: 0 10px;
-    }
-    .success-message {
-      display: none;
-      background-color: #d4edda;
-      color: #155724;
-      padding: 15px;
-      border-radius: 4px;
-      margin-top: 20px;
-      text-align: center;
-    }
-    .error-message {
-      display: none;
-      background-color: #f8d7da;
-      color: #721c24;
-      padding: 15px;
-      border-radius: 4px;
-      margin-top: 20px;
-      text-align: center;
-    }
+    *{box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f7fa;margin:0;padding:20px;color:#333}
+    .container{max-width:1000px;margin:0 auto;background:#fff;padding:30px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+    h1{color:#1a73e8;border-bottom:2px solid #1a73e8;padding-bottom:10px;margin-top:0}
+    h2{color:#555;font-size:17px;margin-top:25px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px;margin-bottom:20px}
+    .field{display:flex;flex-direction:column}
+    label{font-size:13px;font-weight:600;margin-bottom:5px;color:#555}
+    .req{color:#e53935}
+    input,select,textarea{padding:10px;border:1px solid #dadce0;border-radius:4px;font-size:14px;font-family:inherit}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:#1a73e8;box-shadow:0 0 0 2px rgba(26,115,232,.2)}
+    textarea{resize:vertical;min-height:60px}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th{background:#1a73e8;color:#fff;padding:10px;text-align:left;font-size:13px}
+    td{padding:5px}
+    .materiali-table input,.materiali-table select{width:100%;padding:6px 8px;font-size:13px}
+    .btn{padding:10px 20px;border:none;border-radius:4px;cursor:pointer;font-size:14px;font-weight:500}
+    .btn-primary{background:#1a73e8;color:#fff}
+    .btn-primary:hover{background:#1557b0}
+    .btn-primary:disabled{background:#999;cursor:not-allowed}
+    .btn-secondary{background:#f1f3f4;color:#333}
+    .btn-danger{background:#fce8e6;color:#e53935;padding:6px 10px;font-size:12px}
+    .actions{margin-top:25px;display:flex;gap:10px;justify-content:flex-end}
+    .add-row{margin-top:10px;background:#e8f0fe;color:#1a73e8;padding:8px 14px}
+    .alert{padding:12px 16px;border-radius:4px;margin:15px 0;font-size:14px;display:none}
+    .alert.show{display:block}
+    .alert-success{background:#e6f4ea;color:#137333;border-left:4px solid #137333}
+    .alert-error{background:#fce8e6;color:#c5221f;border-left:4px solid #c5221f}
+    .loading{display:none;text-align:center;padding:20px}
+    .loading.show{display:block}
+    .spinner{border:3px solid #f3f3f3;border-top:3px solid #1a73e8;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;margin:0 auto}
+    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🔌 Richiesta Materiale Elettrico</h1>
-    
-    <form id="materialForm">
-      <fieldset>
-        <legend>📋 Dati Commessa</legend>
-        
-        <div class="form-group">
-          <label for="nomeCommessa">Nome Commessa *</label>
-          <input type="text" id="nomeCommessa" name="nomeCommessa" required>
+    <h1>⚡ Richiesta Materiale Elettrico</h1>
+    <div id="alert" class="alert"></div>
+
+    <form id="form">
+      <h2>Dati commessa</h2>
+      <div class="grid">
+        <div class="field"><label>Commessa <span class="req">*</span></label><input type="text" id="commessa" required placeholder="es. 2026-001"></div>
+        <div class="field"><label>Cantiere / Ubicazione <span class="req">*</span></label><input type="text" id="cantiere" required></div>
+        <div class="field"><label>Richiedente <span class="req">*</span></label><input type="text" id="richiedente" required></div>
+        <div class="field"><label>Email richiedente</label><input type="email" id="emailRichiedente"></div>
+        <div class="field"><label>Data richiesta <span class="req">*</span></label><input type="date" id="data" required></div>
+        <div class="field"><label>Consegna richiesta</label><input type="date" id="dataConsegna"></div>
+        <div class="field"><label>Urgenza <span class="req">*</span></label>
+          <select id="urgenza"><option value="NORMALE">Normale</option><option value="URGENTE">Urgente</option><option value="URGENTISSIMO">Urgentissimo</option></select>
         </div>
-        
-        <div class="form-group">
-          <label for="cliente">Cliente *</label>
-          <input type="text" id="cliente" name="cliente" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="dataConsegna">Data Consegna *</label>
-          <input type="date" id="dataConsegna" name="dataConsegna" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="priorita">Priorità</label>
-          <select id="priorita" name="priorita">
-            <option value="Bassa">Bassa</option>
-            <option value="Media" selected>Media</option>
-            <option value="Alta">Alta</option>
-            <option value="Urgente">Urgente</option>
-          </select>
-        </div>
-      </fieldset>
-      
-      <fieldset>
-        <legend>👤 Dati Richiedente</legend>
-        
-        <div class="form-group">
-          <label for="nomeRichiedente">Nome Richiedente *</label>
-          <input type="text" id="nomeRichiedente" name="nomeRichiedente" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="emailRichiedente">Email</label>
-          <input type="text" id="emailRichiedente" name="emailRichiedente" placeholder="Email (opzionale)">
-        </div>
-        
-        <div class="form-group">
-          <label for="telefono">Telefono</label>
-          <input type="text" id="telefono" name="telefono">
-        </div>
-      </fieldset>
-      
-      <fieldset>
-        <legend>⚡ Materiale Elettrico</legend>
-        
-        <div id="materialiContainer">
-          <div class="material-row">
-            <input type="text" name="descrizione[]" required placeholder="Descrizione">
-            <input type="text" name="categoria[]" required placeholder="Categoria">
-            <input type="number" name="quantita[]" required min="1" placeholder="Qtà">
-            <input type="text" name="unitaMisura[]" required placeholder="U.M.">
-            <button type="button" class="remove-btn" onclick="rimuoviRiga(this)">✕</button>
-          </div>
-        </div>
-        
-        <button type="button" class="add-btn" onclick="aggiungiRiga()">+ Aggiungi Materiale</button>
-        
-        <div class="form-group" style="margin-top: 20px;">
-          <label for="note">Note</label>
-          <textarea id="note" name="note" placeholder="Note aggiuntive..."></textarea>
-        </div>
-      </fieldset>
-      
-      <button type="submit" id="submitBtn">Invia Richiesta</button>
+      </div>
+
+      <h2>Materiali richiesti</h2>
+      <div style="overflow-x:auto">
+        <table class="materiali-table">
+          <thead><tr>
+            <th style="width:40px">#</th><th style="width:120px">Codice</th>
+            <th>Descrizione <span style="color:#ffcdd2">*</span></th>
+            <th style="width:80px">Q.tà <span style="color:#ffcdd2">*</span></th>
+            <th style="width:80px">U.M.</th><th>Note</th><th style="width:50px"></th>
+          </tr></thead>
+          <tbody id="righe"></tbody>
+        </table>
+      </div>
+      <button type="button" class="btn add-row" onclick="addRow()">+ Aggiungi riga</button>
+
+      <h2>Note generali</h2>
+      <textarea id="noteGenerali" placeholder="Specifiche, modalità di consegna, contatti cantiere, ecc."></textarea>
+
+      <div class="actions">
+        <button type="button" class="btn btn-secondary" onclick="resetForm()">Reset</button>
+        <button type="submit" class="btn btn-primary" id="btnInvia">Invia richiesta</button>
+      </div>
     </form>
-    
-    <div id="successMessage" class="success-message">
-      ✓ Richiesta inviata con successo!
-    </div>
-    
-    <div id="errorMessage" class="error-message">
-      ✕ Errore: Riprova più tardi.
-    </div>
+    <div id="loading" class="loading"><div class="spinner"></div><p>Invio in corso...</p></div>
   </div>
 
   <script>
-    function aggiungiRiga() {
-      const container = document.getElementById('materialiContainer');
-      const nuovaRiga = document.createElement('div');
-      nuovaRiga.className = 'material-row';
-      nuovaRiga.innerHTML = `
-        <input type="text" name="descrizione[]" required placeholder="Descrizione">
-        <input type="text" name="categoria[]" required placeholder="Categoria">
-        <input type="number" name="quantita[]" required min="1" placeholder="Qtà">
-        <input type="text" name="unitaMisura[]" required placeholder="U.M.">
-        <button type="button" class="remove-btn" onclick="rimuoviRiga(this)">✕</button>
-      `;
-      container.appendChild(nuovaRiga);
+    // ====== CONFIGURAZIONE — MODIFICA QUESTE DUE RIGHE ======
+    const APPS_SCRIPT_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnQJXQBjaV3-CzuewDr65OZTGZAllmjvrrJNIqWNB2lMxASEyWrA1IvNj1lSWZuxZ6dHLDAMCKoGUZ6GqIjFHuCzxZ3kWkhBGIW7HhS62j6LxaYGbYK9Jd2LQMqimoXC24lPHZm6MbnM-OL2ef_-vpHw4MAHSbYmtxJYeLF_BqGt9o3ChwxaYuX82wZ1jhaZb6h8R_aoZNv4qcklxX2HGPYOQxqnxmIGmxr5XVB6wgElY7orBXbDgJz4XoE3uJKjGFj0DlSl6ncqEviCaCMFlerJrr_GjA&lib=MR_nInZZjp8tPQmx58oU-36X-Z-RrYkhp/exec';
+    const TOKEN = 'tcs-2026-xK9pQ2mN';
+    // =========================================================
+
+    const UM = ['pz','m','ml','kg','cf','rotolo','mt²','l','set'];
+
+    function addRow(){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="num" style="text-align:center"></td>
+        <td><input type="text" class="codice"></td>
+        <td><input type="text" class="descr" required></td>
+        <td><input type="number" class="qta" step="0.01" min="0" required></td>
+        <td><select class="um">${UM.map(u=>`<option>${u}</option>`).join('')}</select></td>
+        <td><input type="text" class="note"></td>
+        <td><button type="button" class="btn btn-danger" onclick="delRow(this)">✕</button></td>`;
+      document.getElementById('righe').appendChild(tr);
+      renum();
     }
-    
-    function rimuoviRiga(btn) {
-      const container = document.getElementById('materialiContainer');
-      if (container.children.length > 1) {
-        btn.parentElement.remove();
-      } else {
-        alert('Devi inserire almeno un materiale');
-      }
+    function delRow(b){
+      if(document.querySelectorAll('#righe tr').length === 1){ alertMsg('Deve esserci almeno una riga','error'); return; }
+      b.closest('tr').remove(); renum();
     }
-    
-    document.getElementById('materialForm').addEventListener('submit', function(e) {
+    function renum(){ document.querySelectorAll('#righe tr').forEach((tr,i)=>tr.querySelector('.num').textContent=i+1); }
+    function resetForm(){
+      if(!confirm('Resettare il modulo?')) return;
+      document.getElementById('form').reset();
+      document.getElementById('righe').innerHTML=''; addRow(); setOggi();
+    }
+    function setOggi(){ document.getElementById('data').value = new Date().toISOString().split('T')[0]; }
+    function alertMsg(m,t){
+      const a=document.getElementById('alert');
+      a.textContent=m; a.className='alert show alert-'+t;
+      window.scrollTo({top:0,behavior:'smooth'});
+      if(t==='success') setTimeout(()=>a.classList.remove('show'),5000);
+    }
+
+    document.getElementById('form').addEventListener('submit', e=>{
       e.preventDefault();
-      
-      const submitBtn = document.getElementById('submitBtn');
-      const successMsg = document.getElementById('successMessage');
-      const errorMsg = document.getElementById('errorMessage');
-      
-      successMsg.style.display = 'none';
-      errorMsg.style.display = 'none';
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Invio in corso...';
-      
-      const formData = new FormData(this);
-      const dati = {
-        nomeCommessa: formData.get('nomeCommessa'),
-        cliente: formData.get('cliente'),
-        dataConsegna: formData.get('dataConsegna'),
-        priorita: formData.get('priorita'),
-        nomeRichiedente: formData.get('nomeRichiedente'),
-        emailRichiedente: formData.get('emailRichiedente') || 'Non specificata',
-        telefono: formData.get('telefono') || 'Non specificato',
-        note: formData.get('note') || '',
-        materiali: []
-      };
-      
-      const descrizioni = formData.getAll('descrizione[]');
-      const categorie = formData.getAll('categoria[]');
-      const quantita = formData.getAll('quantita[]');
-      const unitaMisura = formData.getAll('unitaMisura[]');
-      
-      for (let i = 0; i < descrizioni.length; i++) {
-        dati.materiali.push({
-          descrizione: descrizioni[i],
-          categoria: categorie[i],
-          quantita: quantita[i],
-          unitaMisura: unitaMisura[i]
+      const mat=[];
+      let ok=true;
+      document.querySelectorAll('#righe tr').forEach(tr=>{
+        const d=tr.querySelector('.descr').value.trim();
+        const q=tr.querySelector('.qta').value;
+        if(!d||!q){ok=false;return;}
+        mat.push({
+          codice:tr.querySelector('.codice').value.trim(),
+          descrizione:d, quantita:q,
+          unita:tr.querySelector('.um').value,
+          note:tr.querySelector('.note').value.trim()
         });
-      }
-      
-      google.script.run
-        .withSuccessHandler(function(response) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Invia Richiesta';
-          
-          if (response.success) {
-            successMsg.style.display = 'block';
-            document.getElementById('materialForm').reset();
-          } else {
-            errorMsg.textContent = '✕ Errore: ' + response.message;
-            errorMsg.style.display = 'block';
-          }
-        })
-        .withFailureHandler(function(error) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Invia Richiesta';
-          errorMsg.textContent = '✕ Errore: ' + error.message;
-          errorMsg.style.display = 'block';
-        })
-        .inviaRichiestaMateriale(dati);
+      });
+      if(!ok||!mat.length){ alertMsg('Compila almeno una riga (descrizione + quantità)','error'); return; }
+
+      const dati={
+        token: TOKEN,
+        commessa:commessa.value.trim(), cantiere:cantiere.value.trim(),
+        richiedente:richiedente.value.trim(), emailRichiedente:emailRichiedente.value.trim(),
+        data:data.value, dataConsegna:dataConsegna.value, urgenza:urgenza.value,
+        noteGenerali:noteGenerali.value.trim(), materiali:mat
+      };
+
+      btnInvia.disabled=true; document.getElementById('loading').classList.add('show');
+
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(dati)
+        // Nessun Content-Type → evita la preflight CORS con Apps Script
+      })
+      .then(r => r.json())
+      .then(r => {
+        document.getElementById('loading').classList.remove('show');
+        btnInvia.disabled=false;
+        alertMsg(r.message, r.success?'success':'error');
+        if(r.success) resetForm();
+      })
+      .catch(err => {
+        document.getElementById('loading').classList.remove('show');
+        btnInvia.disabled=false;
+        alertMsg('Errore di rete: '+err.message,'error');
+      });
     });
+
+    setOggi(); addRow();
   </script>
 </body>
 </html>
