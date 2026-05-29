@@ -100,6 +100,17 @@ tr:last-child td{border-bottom:none}
 .operaio-item:last-child{border-bottom:none}
 .operaio-del{background:none;border:none;color:#c0392b;cursor:pointer;font-size:18px;padding:2px 8px}
 .operaio-del:hover{background:#fae8e8;border-radius:4px}
+.modifica-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;overflow-y:auto;padding:24px}
+.modifica-overlay.open{display:block}
+.modifica-modal{max-width:700px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.mod-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.mod-fg{display:flex;flex-direction:column;gap:5px}
+.mod-fg label{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--text3)}
+.mod-fg input,.mod-fg select,.mod-fg textarea{background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:9px 12px;font-size:13px;font-family:var(--font);color:var(--text)}
+.mod-fg textarea{min-height:70px;resize:vertical}
+.mod-full{grid-column:1/-1}
+.mod-op-row{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.mod-op-row:last-child{border-bottom:none}
 @media print{.topbar,.filter-bar,.kpi-grid,.charts-grid,.table-card,.overlay,.login-screen,#alert{display:none!important}.modal{box-shadow:none;border:none;max-width:100%;padding:0}body{background:#fff}}
 </style>
 </head>
@@ -174,6 +185,7 @@ tr:last-child td{border-bottom:none}
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-accent" onclick="stampaPdfModale()">Stampa PDF</button>
         <button class="btn" onclick="inviaMailCliente()">Invia al cliente</button>
+        <button class="btn" onclick="apriModificaModale()">✏️ Modifica</button>
         <button class="btn" onclick="esportaDettaglioCSV()">CSV</button>
         <button class="btn" onclick="chiudiModale()">Chiudi</button>
       </div>
@@ -181,6 +193,57 @@ tr:last-child td{border-bottom:none}
     <div id="mod-body"></div>
   </div>
 </div>
+<!-- MODALE MODIFICA -->
+<div class="modifica-overlay" id="modifica-overlay" onclick="if(event.target===this)chiudiModifica()">
+  <div class="modifica-modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div style="font-size:16px;font-weight:600">✏️ Modifica Rapportino</div>
+      <button class="btn" onclick="chiudiModifica()">Chiudi</button>
+    </div>
+    <div class="mod-grid">
+      <div class="mod-fg"><label>N. Rapportino</label><input type="text" id="mod-f-num" readonly style="background:var(--surface2);color:var(--text2)"></div>
+      <div class="mod-fg"><label>Data</label><input type="date" id="mod-f-data"></div>
+      <div class="mod-fg"><label>Cliente</label><input type="text" id="mod-f-cliente"></div>
+      <div class="mod-fg"><label>N. Commessa</label><input type="text" id="mod-f-commessa"></div>
+      <div class="mod-fg"><label>Indirizzo</label><input type="text" id="mod-f-indirizzo"></div>
+      <div class="mod-fg"><label>Tecnico</label><input type="text" id="mod-f-tecnico" oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase"></div>
+      <div class="mod-fg"><label>Tipo</label>
+        <select id="mod-f-tipo">
+          <option value="">Seleziona...</option>
+          <option>Manutenzione ordinaria</option>
+          <option>Manutenzione straordinaria</option>
+          <option>Installazione</option><option>Riparazione</option>
+          <option>Collaudo</option><option>Ispezione</option><option>Altro</option>
+        </select>
+      </div>
+      <div class="mod-fg"><label>Avanzamento</label>
+        <select id="mod-f-stato">
+          <option value="0">0%</option><option value="25">25%</option>
+          <option value="50">50%</option><option value="75">75%</option>
+          <option value="100">100%</option>
+        </select>
+      </div>
+      <div class="mod-fg mod-full"><label>Descrizione</label><textarea id="mod-f-desc"></textarea></div>
+      <div class="mod-fg mod-full"><label>Note</label><textarea id="mod-f-note"></textarea></div>
+    </div>
+    <div style="font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:10px">Operai e ore</div>
+    <div id="mod-operai-lista" style="margin-bottom:14px"></div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <select id="mod-op-nome" style="flex:1;min-width:150px;border:1px solid var(--border2);border-radius:6px;padding:8px 12px;font-size:13px;font-family:var(--font)">
+        <option value="">Seleziona operaio...</option>
+      </select>
+      <input type="number" id="mod-op-lav" placeholder="Lav." min="0" step="0.5" style="width:80px;border:1px solid var(--border2);border-radius:6px;padding:8px;font-size:13px">
+      <input type="number" id="mod-op-viag" placeholder="Viag." min="0" step="0.5" style="width:80px;border:1px solid var(--border2);border-radius:6px;padding:8px;font-size:13px">
+      <input type="number" id="mod-op-str" placeholder="Str." min="0" step="0.5" style="width:80px;border:1px solid var(--border2);border-radius:6px;padding:8px;font-size:13px">
+      <button class="btn" onclick="modAddOp()" style="padding:8px 14px">+ Aggiungi</button>
+    </div>
+    <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn" onclick="chiudiModifica()">Annulla</button>
+      <button class="btn btn-accent" onclick="salvaModifica()">💾 Salva e aggiorna su Drive</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODALE OPERAI -->
 <div class="operai-overlay" id="operai-overlay" onclick="if(event.target===this)chiudiGestioneOperai()">
   <div class="operai-modal">
@@ -307,6 +370,128 @@ async function salvaOperai() {
     var d = await res.json();
     if(d.ok) { showAlert('\u2713 Lista operai salvata!', 'ok'); }
     else { showAlert('Errore: ' + (d.error||''), 'err'); }
+  } catch(e) {
+    showAlert('Errore: ' + e.message, 'err');
+  }
+}
+
+
+// ── MODIFICA RAPPORTINO ──────────────────────────────────────────
+var modOperai = [];
+
+function apriModificaModale() {
+  if (!rapCorrente) return;
+  var r = rapCorrente;
+  // Popola campi
+  el('mod-f-num').value = r.numero || '';
+  el('mod-f-data').value = r.data || '';
+  el('mod-f-cliente').value = r.cliente || '';
+  el('mod-f-commessa').value = r.commessa || '';
+  el('mod-f-indirizzo').value = r.indirizzo || '';
+  el('mod-f-tecnico').value = r.tecnico || '';
+  el('mod-f-tipo').value = r.tipo || '';
+  el('mod-f-stato').value = r.stato || '0';
+  el('mod-f-desc').value = r.descrizione || '';
+  el('mod-f-note').value = r.note || '';
+  modOperai = (r.operai || []).map(function(o) { return Object.assign({}, o); });
+  renderModOperai();
+  popolaSelectModOperai();
+  el('modifica-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function chiudiModifica() {
+  el('modifica-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function popolaSelectModOperai() {
+  // Carica lista operai dal server
+  fetch(SCRIPT_URL + '?action=operai&_dc=' + Date.now())
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.ok) return;
+      var sel = el('mod-op-nome');
+      var val = sel.value;
+      sel.innerHTML = '<option value="">Seleziona operaio...</option>';
+      (d.operai || []).forEach(function(nome) {
+        var opt = document.createElement('option');
+        opt.value = nome;
+        opt.textContent = nome;
+        sel.appendChild(opt);
+      });
+      if (val) sel.value = val;
+    }).catch(function() {});
+}
+
+function renderModOperai() {
+  var w = el('mod-operai-lista');
+  if (!modOperai.length) {
+    w.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px 0">Nessun operaio</div>';
+    return;
+  }
+  w.innerHTML = modOperai.map(function(o, i) {
+    return '<div class="mod-op-row">' +
+      '<span style="flex:1;font-size:13px;font-weight:500">' + esc(o.nome) + '</span>' +
+      '<span style="font-size:12px;color:var(--text2);margin-right:8px">Lav: ' + (o.oreLav||0) + 'h · Viag: ' + (o.oreViag||0) + 'h · Str: ' + (o.oreStr||0) + 'h</span>' +
+      '<button class="operaio-del" onclick="modRmOp(' + i + ')">✕</button>' +
+    '</div>';
+  }).join('');
+}
+
+function modAddOp() {
+  var sel = el('mod-op-nome');
+  var nome = sel ? sel.value : '';
+  if (!nome) return;
+  var lav = parseFloat(el('mod-op-lav').value) || 0;
+  var viag = parseFloat(el('mod-op-viag').value) || 0;
+  var str = parseFloat(el('mod-op-str').value) || 0;
+  modOperai.push({ nome: nome, oreLav: lav, oreViag: viag, oreStr: str });
+  if (sel) sel.selectedIndex = 0;
+  el('mod-op-lav').value = '';
+  el('mod-op-viag').value = '';
+  el('mod-op-str').value = '';
+  renderModOperai();
+}
+
+function modRmOp(i) {
+  modOperai.splice(i, 1);
+  renderModOperai();
+}
+
+async function salvaModifica() {
+  if (!rapCorrente) return;
+  var r = Object.assign({}, rapCorrente);
+  r.numero = el('mod-f-num').value;
+  r.data = el('mod-f-data').value;
+  r.cliente = el('mod-f-cliente').value;
+  r.commessa = el('mod-f-commessa').value;
+  r.indirizzo = el('mod-f-indirizzo').value;
+  r.tecnico = (el('mod-f-tecnico').value || '').toUpperCase();
+  r.tipo = el('mod-f-tipo').value;
+  r.stato = el('mod-f-stato').value;
+  r.descrizione = el('mod-f-desc').value;
+  r.note = el('mod-f-note').value;
+  r.operai = modOperai;
+  r.totLav = modOperai.reduce(function(s, o) { return s + (parseFloat(o.oreLav) || 0); }, 0);
+  r.totViag = modOperai.reduce(function(s, o) { return s + (parseFloat(o.oreViag) || 0); }, 0);
+  r.totStr = modOperai.reduce(function(s, o) { return s + (parseFloat(o.oreStr) || 0); }, 0);
+
+  try {
+    var res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(r)
+    });
+    var d = await res.json();
+    if (d.ok) {
+      showAlert('✓ Rapportino aggiornato su Drive!', 'ok');
+      rapCorrente = r;
+      chiudiModifica();
+      caricaDati(); // ricarica lista
+    } else {
+      showAlert('Errore: ' + (d.error || ''), 'err');
+    }
   } catch(e) {
     showAlert('Errore: ' + e.message, 'err');
   }
