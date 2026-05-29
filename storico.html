@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Storico Richieste Materiali</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     *{box-sizing:border-box}
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f7fa;margin:0;padding:20px;color:#333}
@@ -15,8 +16,6 @@
     .btn-primary:hover{background:#1557b0}
     .btn-secondary{background:#fff;color:#1a73e8;border:1px solid #1a73e8}
     .btn-secondary:hover{background:#e8f0fe}
-    .btn-danger{background:#fce8e6;color:#c5221f;padding:6px 10px;font-size:12px;border:none;border-radius:4px;cursor:pointer}
-    .btn-danger:hover{background:#f9c8c4}
     .btn-icon{background:none;border:none;cursor:pointer;font-size:18px;padding:4px 8px;border-radius:4px}
     .btn-icon:hover{background:#f1f3f4}
 
@@ -79,6 +78,26 @@
     .alert.show{display:block}
     .alert-success{background:#e6f4ea;color:#137333;border-left:4px solid #137333}
     .alert-error{background:#fce8e6;color:#c5221f;border-left:4px solid #c5221f}
+    .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:15px;border-top:1px solid #eee}
+
+    /* PDF template — fuori schermo, usato solo per la generazione */
+    #pdfContainer{position:absolute;left:-9999px;top:0;width:210mm;background:#fff}
+    .pdf-page{width:210mm;padding:15mm;font-family:Arial,sans-serif;color:#222;font-size:11pt;background:#fff}
+    .pdf-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a73e8;padding-bottom:10px;margin-bottom:15px}
+    .pdf-header h1{color:#1a73e8;font-size:20pt;margin:0}
+    .pdf-header .meta{text-align:right;font-size:9pt;color:#666}
+    .pdf-info{width:100%;border-collapse:collapse;margin-bottom:18px;font-size:10pt}
+    .pdf-info td{padding:6px 8px;border:1px solid #ddd;vertical-align:top}
+    .pdf-info td.lbl{background:#f5f5f5;font-weight:bold;width:25%}
+    .pdf-section-title{color:#1a73e8;font-size:13pt;margin:15px 0 8px;padding-bottom:4px;border-bottom:1px solid #ccc}
+    .pdf-mat{width:100%;border-collapse:collapse;font-size:9.5pt}
+    .pdf-mat th{background:#1a73e8;color:#fff;padding:6px;text-align:left;border:1px solid #1a73e8}
+    .pdf-mat td{padding:6px;border:1px solid #ddd;vertical-align:top}
+    .pdf-mat tr:nth-child(even) td{background:#fafafa}
+    .pdf-note{background:#fff8e1;border-left:4px solid #f9ab00;padding:10px;margin-top:12px;font-size:10pt;white-space:pre-wrap}
+    .pdf-footer{margin-top:30px;padding-top:10px;border-top:1px solid #eee;font-size:8.5pt;color:#888;text-align:center}
+    .pdf-urgenza{display:inline-block;padding:3px 10px;color:#fff;border-radius:3px;font-weight:bold;font-size:9.5pt}
+    .pdf-stato{display:inline-block;padding:3px 10px;border-radius:3px;font-weight:bold;font-size:9.5pt}
 
     @media(max-width:700px){
       body{padding:10px}
@@ -92,10 +111,7 @@
   <div class="container">
     <header>
       <h1>📊 Storico Richieste Materiali</h1>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <a href="richiesta-materiali.html" class="btn btn-secondary" style="text-decoration:none">+ Nuova richiesta</a>
-        <button class="btn btn-primary" onclick="caricaDati()">🔄 Aggiorna</button>
-      </div>
+      <button class="btn btn-primary" onclick="caricaDati()">🔄 Aggiorna</button>
     </header>
 
     <div id="alert" class="alert"></div>
@@ -139,7 +155,7 @@
             <th>Consegna</th>
             <th>Art.</th>
             <th>Stato</th>
-            <th></th>
+            <th>Azioni</th>
           </tr>
         </thead>
         <tbody id="rows"></tbody>
@@ -154,14 +170,21 @@
         <button class="close-btn" onclick="chiudiModal()">✕</button>
       </div>
       <div id="modalBody"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="chiudiModal()">Chiudi</button>
+        <button class="btn btn-primary" id="btnPdfModal">📄 Scarica PDF</button>
+      </div>
     </div>
   </div>
 
+  <div id="pdfContainer"></div>
+
   <script>
-    // ====== CONFIGURAZIONE — MODIFICA QUESTE DUE RIGHE ======
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwZfqQYlX5ESNT581caNx6sQHrfM-2S7ClcUHjEMWhOUsaz2ZJ3wuJ78SfKpoLPZ5P2hA/exec';
-    const TOKEN = 'tcs-2026-xK9pQ2mN';
-    // =========================================================
+    // ====== CONFIGURAZIONE — MODIFICA QUESTE RIGHE ======
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/INCOLLA_QUI_IL_TUO_URL/exec';
+    const TOKEN = 'IL_TUO_TOKEN_SEGRETO';
+    const NOME_AZIENDA = T.C.S. S.r.l.';  // appare nell'intestazione del PDF
+    // =====================================================
 
     let datiCompleti = [];
 
@@ -266,8 +289,9 @@
                 <option ${stato==='Annullato'?'selected':''}>Annullato</option>
               </select>
             </td>
-            <td>
-              <button class="btn-icon" onclick='apriDettagli(${JSON.stringify(d).replace(/'/g,"&apos;")})' title="Dettagli">👁️</button>
+            <td style="white-space:nowrap">
+              <button class="btn-icon" onclick="apriDettagliRiga(${d.riga})" title="Dettagli">👁️</button>
+              <button class="btn-icon" onclick="scaricaPDFRiga(${d.riga})" title="Scarica PDF">📄</button>
               <button class="btn-icon" onclick="eliminaRichiesta(${d.riga})" title="Elimina">🗑️</button>
             </td>
           </tr>`;
@@ -314,6 +338,15 @@
       }
     }
 
+    function apriDettagliRiga(riga){
+      const d = datiCompleti.find(x => x.riga === riga);
+      if(d) apriDettagli(d);
+    }
+    function scaricaPDFRiga(riga){
+      const d = datiCompleti.find(x => x.riga === riga);
+      if(d) generaPDF(d);
+    }
+
     function apriDettagli(d){
       const urg = d.Urgenza || 'NORMALE';
       const stato = d.Stato || 'Da evadere';
@@ -336,6 +369,7 @@
         </div>
         ${d.Note ? `<h3 style="margin-top:20px;font-size:15px;color:#1a73e8">Note</h3><div class="note-box">${escapeHtml(d.Note)}</div>` : ''}
       `;
+      document.getElementById('btnPdfModal').onclick = () => generaPDF(d);
       document.getElementById('modal').classList.add('show');
     }
 
@@ -343,15 +377,132 @@
       document.getElementById('modal').classList.remove('show');
     }
 
-    // Event listeners filtri
+    // --- Parsing dei materiali dallo stringa "Dettagli" ---
+    function parseMaterials(dettagliStr){
+      // Formato: "5 pz - Cavo FG16OR16 3x2,5 [COD123] | 10 m - Tubo IPN | ..."
+      if(!dettagliStr) return [];
+      return dettagliStr.split(' | ').filter(x=>x.trim()).map(item => {
+        const m = item.match(/^([\d.,]+)\s+(\S+)\s+-\s+(.+?)(?:\s+\[([^\]]+)\])?$/);
+        if(m){
+          return { qta: m[1], unita: m[2], descr: m[3].trim(), codice: m[4] || '' };
+        }
+        return { qta:'', unita:'', descr:item.trim(), codice:'' };
+      });
+    }
+
+    // --- Costruzione HTML per il PDF ---
+    function buildPdfHtml(d){
+      const urg = d.Urgenza || 'NORMALE';
+      const stato = d.Stato || 'Da evadere';
+      const materiali = parseMaterials(d.Dettagli);
+
+      const urgColors = {NORMALE:'#137333', URGENTE:'#e8710a', URGENTISSIMO:'#c5221f'};
+      const statoColors = {
+        'Da evadere':{bg:'#fce8e6',color:'#c5221f'},
+        'In corso':{bg:'#fef7e0',color:'#b06000'},
+        'Completato':{bg:'#e6f4ea',color:'#137333'},
+        'Annullato':{bg:'#f1f3f4',color:'#5f6368'}
+      };
+      const stCol = statoColors[stato] || statoColors['Da evadere'];
+
+      const righeMat = materiali.map((m,i) => `
+        <tr>
+          <td style="text-align:center;width:30px">${i+1}</td>
+          <td style="width:90px">${escapeHtml(m.codice)||'-'}</td>
+          <td><b>${escapeHtml(m.descr)}</b></td>
+          <td style="text-align:center;width:60px">${escapeHtml(m.qta)}</td>
+          <td style="text-align:center;width:55px">${escapeHtml(m.unita)}</td>
+        </tr>`).join('');
+
+      return `
+        <div class="pdf-page">
+          <div class="pdf-header">
+            <div>
+              <h1>⚡ Richiesta Materiale Elettrico</h1>
+              <div style="color:#666;font-size:10pt;margin-top:3px">${escapeHtml(NOME_AZIENDA)}</div>
+            </div>
+            <div class="meta">
+              <div><b>Data richiesta</b></div>
+              <div>${formatDataOra(d.Timestamp)}</div>
+            </div>
+          </div>
+
+          <table class="pdf-info">
+            <tr>
+              <td class="lbl">Commessa</td><td>${escapeHtml(d.Commessa||'-')}</td>
+              <td class="lbl">Urgenza</td>
+              <td><span class="pdf-urgenza" style="background:${urgColors[urg]||'#137333'}">${urg}</span></td>
+            </tr>
+            <tr>
+              <td class="lbl">Cantiere</td><td colspan="3">${escapeHtml(d.Cantiere||'-')}</td>
+            </tr>
+            <tr>
+              <td class="lbl">Richiedente</td><td>${escapeHtml(d.Richiedente||'-')}</td>
+              <td class="lbl">Email</td><td>${escapeHtml(d.Email||'-')}</td>
+            </tr>
+            <tr>
+              <td class="lbl">Consegna richiesta</td><td>${d['Consegna richiesta']?formatData(d['Consegna richiesta']):'Non specificata'}</td>
+              <td class="lbl">Stato</td>
+              <td><span class="pdf-stato" style="background:${stCol.bg};color:${stCol.color}">${stato}</span></td>
+            </tr>
+          </table>
+
+          <div class="pdf-section-title">Materiali richiesti (${materiali.length})</div>
+          <table class="pdf-mat">
+            <thead>
+              <tr>
+                <th style="width:30px">#</th>
+                <th style="width:90px">Codice</th>
+                <th>Descrizione</th>
+                <th style="width:60px;text-align:center">Q.tà</th>
+                <th style="width:55px;text-align:center">U.M.</th>
+              </tr>
+            </thead>
+            <tbody>${righeMat || '<tr><td colspan="5" style="text-align:center;color:#888">Nessun materiale</td></tr>'}</tbody>
+          </table>
+
+          ${d.Note ? `
+            <div class="pdf-section-title">Note generali</div>
+            <div class="pdf-note">${escapeHtml(d.Note)}</div>
+          ` : ''}
+
+          <div class="pdf-footer">
+            Documento generato il ${new Date().toLocaleString('it-IT')}
+          </div>
+        </div>`;
+    }
+
+    async function generaPDF(d){
+      const container = document.getElementById('pdfContainer');
+      container.innerHTML = buildPdfHtml(d);
+
+      const commessaSafe = (d.Commessa||'richiesta').toString().replace(/[^a-zA-Z0-9_-]/g,'_');
+      const dataSafe = new Date(d.Timestamp).toISOString().split('T')[0];
+      const filename = `Richiesta_${commessaSafe}_${dataSafe}.pdf`;
+
+      const opt = {
+        margin: 0,
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] }
+      };
+
+      try {
+        await html2pdf().set(opt).from(container.firstElementChild).save();
+      } catch(e) {
+        alertMsg('Errore generazione PDF: '+e.message,'error');
+      } finally {
+        container.innerHTML = '';
+      }
+    }
+
     search.addEventListener('input', applicaFiltri);
     filterUrgenza.addEventListener('change', applicaFiltri);
     filterStato.addEventListener('change', applicaFiltri);
-
-    // ESC chiude modal
     document.addEventListener('keydown', e => { if(e.key === 'Escape') chiudiModal(); });
 
-    // Carica al boot
     caricaDati();
   </script>
 </body>
