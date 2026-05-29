@@ -392,7 +392,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
         <input type="text" id="op-new-nome" placeholder="Cerca operaio..." autocomplete="off"
           oninput="opInputHandler(this)"
           onfocus="opInputHandler(this)"
-          onblur="setTimeout(()=>closeAc('op-ac'),200)"
+          onblur="setTimeout(()=>{closeAc('op-ac');validaOpNome()},200)"
           onkeydown="if(event.key==='Enter'){event.preventDefault();addOp()}"
           style="text-transform:uppercase">
         <div class="ac-list" id="op-ac"></div>
@@ -689,6 +689,14 @@ function selAcOp(val){
   if(inp){ inp.value = val; }
   closeAc('op-ac');
 }
+function validaOpNome(){
+  var nome=(v('op-new-nome')||'').toUpperCase();
+  if(!nome)return;
+  var src=(operaiPred||[]).map(function(n){return n.toUpperCase()});
+  if(!src.includes(nome)){
+    el('op-new-nome').value='';
+  }
+}
 function selAc(inputId,listId,val){var i=el(inputId);if(i)i.value=val;closeAc(listId)}
 function closeAc(listId){var l=el(listId);if(l)l.classList.remove('open')}
 
@@ -714,6 +722,9 @@ function renderMat(){
 // ── OPERAI ────────────────────────────────────────────
 function addOp(){
   var nome=(v('op-new-nome')||'').toUpperCase();if(!nome)return;
+  // Verifica che il nome sia nella lista predefinita
+  var src=(operaiPred||[]).map(function(n){return n.toUpperCase()});
+  if(!src.includes(nome)){showAlert('Seleziona un operaio dalla lista.','err');el('op-new-nome').value='';return;}
   operai.push({id:Date.now()+Math.random(),nome:nome,
     oreLav:parseFloat(el('op-new-lav').value)||0,
     oreViag:parseFloat(el('op-new-viag').value)||0,
