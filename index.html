@@ -94,9 +94,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .add-row input{font-size:14px;padding:9px 11px}
 .add-row .fxs{flex:none;width:90px}
 .ac-wrap{position:relative;flex:1;min-width:150px;z-index:200}
-.ac-list{position:absolute;bottom:100%;left:0;right:0;background:var(--surface);
+.ac-list{position:fixed;background:var(--surface);
   border:1px solid var(--border2);border-radius:var(--radius-sm);z-index:9999;
-  max-height:200px;overflow-y:auto;box-shadow:0 -4px 24px rgba(0,0,0,.18);display:none;margin-bottom:4px}
+  max-height:200px;overflow-y:auto;box-shadow:0 4px 24px rgba(0,0,0,.22);display:none}
 .ac-list.open{display:block}
 .ac-item{padding:9px 12px;font-size:14px;cursor:pointer;color:var(--text)}
 .ac-item:hover,.ac-item:active{background:var(--surface2)}
@@ -661,6 +661,24 @@ function opInputHandler(input){
     ? src.filter(function(n){return n.toLowerCase().includes(q)}).slice(0,8)
     : src.slice(0,8);
   if(!hits.length){list.classList.remove('open');return}
+  // Posiziona il dropdown sopra o sotto il campo con position:fixed
+  var inp = el('op-new-nome');
+  if(inp){
+    var rect = inp.getBoundingClientRect();
+    var spaceAbove = rect.top;
+    var spaceBelow = window.innerHeight - rect.bottom;
+    list.style.width = rect.width + 'px';
+    list.style.left = rect.left + 'px';
+    if(spaceAbove > 150 || spaceAbove > spaceBelow){
+      // Apri sopra
+      list.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+      list.style.top = 'auto';
+    } else {
+      // Apri sotto
+      list.style.top = (rect.bottom + 4) + 'px';
+      list.style.bottom = 'auto';
+    }
+  }
   list.innerHTML = hits.map(function(n){
     return '<div class="ac-item" onmousedown="selAcOp(\'' + esc(n) + '\')">'+esc(n)+'</div>';
   }).join('');
