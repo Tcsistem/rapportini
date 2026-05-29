@@ -732,13 +732,16 @@ function getForm(){
   var totLav=operai.reduce(function(s,o){return s+o.oreLav},0);
   var totViag=operai.reduce(function(s,o){return s+o.oreViag},0);
   var totStr=operai.reduce(function(s,o){return s+o.oreStr},0);
+  // Recupera driveFileId dalla bozza esistente se stiamo modificando
+  var driveFileId='';
+  if(editId){var existing=rapportini.find(function(x){return x.id===editId});if(existing)driveFileId=existing.driveFileId||'';}
   return{id:editId||Date.now(),numero:v('f-num'),data:v('f-data'),
     cliente:v('f-cliente'),commessa:v('f-commessa'),indirizzo:v('f-indirizzo'),
     tecnico:(v('f-tecnico')||'').toUpperCase(),tipo:v('f-tipo'),stato:v('f-stato'),
     descrizione:v('f-desc'),note:v('f-note'),
     materiali:materiali.slice(),operai:operai.slice(),totLav:totLav,totViag:totViag,totStr:totStr,
     azienda:cfg.azienda,piva:cfg.piva,tel:cfg.tel,email:cfg.email,logo:cfg.logo||'',
-    syncedNas:false,createdAt:new Date().toISOString()};
+    driveFileId:driveFileId,syncedNas:false,createdAt:new Date().toISOString()};
 }
 function resetForm(){
   editId=null;
