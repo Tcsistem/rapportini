@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard Responsabile</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
@@ -160,7 +163,7 @@ tr:last-child td{border-bottom:none}
       <div class="kpi-card k4"><div class="kpi-label">Ore straord.</div><div class="kpi-val" id="kpi-str">&#8212;</div><div class="kpi-sub" id="kpi-str-sub">&#8212;</div></div>
     </div>
     <div class="charts-grid">
-      <div class="chart-card"><div class="chart-title">Ore lavoro per tecnico</div><div class="chart-wrap"><canvas id="chart-tecnici"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Ore lavoro per commessa</div><div class="chart-wrap"><canvas id="chart-tecnici"></canvas></div></div>
       <div class="chart-card"><div class="chart-title">Rapportini per mese</div><div class="chart-wrap"><canvas id="chart-mesi"></canvas></div></div>
       <div class="chart-card"><div class="chart-title">Ore per tipo intervento</div><div class="chart-wrap"><canvas id="chart-tipi"></canvas></div></div>
     </div>
@@ -243,7 +246,7 @@ tr:last-child td{border-bottom:none}
     </div>
   </div>
 </div>
-
+ 
 <!-- MODALE OPERAI -->
 <div class="operai-overlay" id="operai-overlay" onclick="if(event.target===this)chiudiGestioneOperai()">
   <div class="operai-modal">
@@ -265,7 +268,7 @@ tr:last-child td{border-bottom:none}
     </div>
   </div>
 </div>
-
+ 
 <script>
 var SCRIPT_URL    = 'https://script.google.com/macros/s/AKfycbzKHF52x6L9ZnZHxVq1iENY1koRe1ynG_4u_HLuFD8uCXPQhZbqRkDZa3Z7nqemvw_G/exec';
 var DASH_PASSWORD = 'Resp2025!';
@@ -288,7 +291,7 @@ function aggiornaFiltri(){var da=el('f-da').value,a=el('f-a').value;var te=el('f
 function aggiornaKPI(){var tL=filtrati.reduce(function(s,r){return s+(r.totLav||0)},0);var tV=filtrati.reduce(function(s,r){return s+(r.totViag||0)},0);var tS=filtrati.reduce(function(s,r){return s+(r.totStr||0)},0);el('kpi-tot').textContent=filtrati.length;el('kpi-lav').textContent=fmt(tL);el('kpi-viag').textContent=fmt(tV);el('kpi-str').textContent=fmt(tS);var tec=filtrati.map(function(r){return r.tecnico}).filter(function(v,i,a){return v&&a.indexOf(v)===i});el('kpi-tot-sub').textContent=tec.length+' tecnici';el('kpi-lav-sub').textContent=fmt(tL/(filtrati.length||1))+'h media/rapportino';el('kpi-viag-sub').textContent=fmt(tV/(filtrati.length||1))+'h media/rapportino';el('kpi-str-sub').textContent=fmt(tS/(filtrati.length||1))+'h media/rapportino';}
 var CDEF={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#e8e7e0'},ticks:{color:'#9b9a92',font:{family:'IBM Plex Mono',size:10}}},y:{grid:{color:'#e8e7e0'},ticks:{color:'#9b9a92',font:{family:'IBM Plex Mono',size:10}}}}};
 function killChart(id){if(charts[id]){charts[id].destroy();delete charts[id]}}
-function aggiornaGrafici(){var tm={};filtrati.forEach(function(r){var t=r.tecnico||'(N/D)';tm[t]=(tm[t]||0)+(r.totLav||0)});var tl=Object.keys(tm).sort(function(a,b){return tm[b]-tm[a]}).slice(0,10);killChart('tecnici');charts['tecnici']=new Chart(el('chart-tecnici'),{type:'bar',data:{labels:tl,datasets:[{data:tl.map(function(k){return tm[k]}),backgroundColor:'#2d6a2d55',borderColor:'#2d6a2d',borderWidth:1,borderRadius:4}]},options:Object.assign({},CDEF)});var mm={};filtrati.forEach(function(r){if(!r.data)return;var m=r.data.slice(0,7);mm[m]=(mm[m]||0)+1});var mk=Object.keys(mm).sort();var ml=mk.map(function(m){var p=m.split('-');return['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'][parseInt(p[1])-1]+' '+p[0].slice(2)});killChart('mesi');charts['mesi']=new Chart(el('chart-mesi'),{type:'line',data:{labels:ml,datasets:[{data:mk.map(function(k){return mm[k]}),borderColor:'#1a4a7a',backgroundColor:'#1a4a7a15',borderWidth:2,pointBackgroundColor:'#1a4a7a',tension:.35,fill:true}]},options:Object.assign({},CDEF)});var pm={};filtrati.forEach(function(r){var t=r.tipo||'(N/D)';pm[t]=(pm[t]||0)+(r.totLav||0)});var pk=Object.keys(pm).sort(function(a,b){return pm[b]-pm[a]});var PC=['#2d6a2d','#1a4a7a','#c07000','#c0392b','#6a2d6a','#2d5a8c','#8c6a00','#2d8c5a'];killChart('tipi');charts['tipi']=new Chart(el('chart-tipi'),{type:'doughnut',data:{labels:pk,datasets:[{data:pk.map(function(k){return pm[k]}),backgroundColor:PC.map(function(c){return c+'cc'}),borderColor:PC,borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#6b6a62',font:{family:'IBM Plex Mono',size:10},padding:10,boxWidth:12}}}}});}
+function aggiornaGrafici(){var tm={};filtrati.forEach(function(r){var t=(r.commessa||'(N/D)').slice(0,20);tm[t]=(tm[t]||0)+(r.totLav||0)});var tl=Object.keys(tm).sort(function(a,b){return tm[b]-tm[a]}).slice(0,10);killChart('tecnici');charts['tecnici']=new Chart(el('chart-tecnici'),{type:'bar',data:{labels:tl,datasets:[{data:tl.map(function(k){return tm[k]}),backgroundColor:'#1a4a7a55',borderColor:'#1a4a7a',borderWidth:1,borderRadius:4}]},options:Object.assign({},CDEF)});var mm={};filtrati.forEach(function(r){if(!r.data)return;var m=r.data.slice(0,7);mm[m]=(mm[m]||0)+1});var mk=Object.keys(mm).sort();var ml=mk.map(function(m){var p=m.split('-');return['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'][parseInt(p[1])-1]+' '+p[0].slice(2)});killChart('mesi');charts['mesi']=new Chart(el('chart-mesi'),{type:'line',data:{labels:ml,datasets:[{data:mk.map(function(k){return mm[k]}),borderColor:'#1a4a7a',backgroundColor:'#1a4a7a15',borderWidth:2,pointBackgroundColor:'#1a4a7a',tension:.35,fill:true}]},options:Object.assign({},CDEF)});var pm={};filtrati.forEach(function(r){var t=r.tipo||'(N/D)';pm[t]=(pm[t]||0)+(r.totLav||0)});var pk=Object.keys(pm).sort(function(a,b){return pm[b]-pm[a]});var PC=['#2d6a2d','#1a4a7a','#c07000','#c0392b','#6a2d6a','#2d5a8c','#8c6a00','#2d8c5a'];killChart('tipi');charts['tipi']=new Chart(el('chart-tipi'),{type:'doughnut',data:{labels:pk,datasets:[{data:pk.map(function(k){return pm[k]}),backgroundColor:PC.map(function(c){return c+'cc'}),borderColor:PC,borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#6b6a62',font:{family:'IBM Plex Mono',size:10},padding:10,boxWidth:12}}}}});}
 function wKey(ds){if(!ds)return'Senza data';var d=new Date(ds+'T00:00:00'),day=d.getDay(),diff=day===0?-6:1-day,lun=new Date(d);lun.setDate(d.getDate()+diff);var ven=new Date(lun);ven.setDate(lun.getDate()+4);var o={day:'2-digit',month:'2-digit',year:'numeric'};return'Sett. '+lun.toLocaleDateString('it-IT',o)+' — '+ven.toLocaleDateString('it-IT',o)}
 function wSort(ds){if(!ds)return'9999';var d=new Date(ds+'T00:00:00'),day=d.getDay(),diff=day===0?-6:1-day,lun=new Date(d);lun.setDate(d.getDate()+diff);return lun.toISOString().slice(0,10)}
 function fN(n){n=Number(n)||0;return n%1===0?n:n.toFixed(1)}
@@ -304,22 +307,22 @@ function csvRow(){return Array.prototype.slice.call(arguments).map(csvE).join(',
 function esportaCSV(){if(!filtrati.length){showAlert('Nessun dato.','err');return}var lines=[csvRow('N. Rapportino','Data','Cliente','Commessa','Indirizzo','Tecnico','Tipo','Avanzamento %','Ore Lavoro','Ore Viaggio','Ore Straord.')];filtrati.forEach(function(r){lines.push(csvRow(r.numero,r.data,r.cliente,r.commessa,r.indirizzo||'',r.tecnico,r.tipo,parseInt(r.stato)||0,fmt(r.totLav||0),fmt(r.totViag||0),fmt(r.totStr||0)))});lines.push(csvRow(''));lines.push(csvRow('TOTALI','','','','','','','',fmt(filtrati.reduce(function(s,r){return s+(r.totLav||0)},0)),fmt(filtrati.reduce(function(s,r){return s+(r.totViag||0)},0)),fmt(filtrati.reduce(function(s,r){return s+(r.totStr||0)},0))));scarica(lines.join('\n'),'rapportini_'+new Date().toISOString().slice(0,10)+'.csv');}
 function esportaDettaglioCSV(){if(!rapCorrente)return;var r=rapCorrente;var lines=[csvRow('RAPPORTINO N.'+(r.numero||''),'Data',r.data||''),csvRow('Cliente',r.cliente||'','Commessa',r.commessa||''),csvRow('Tecnico',r.tecnico||'','Tipo',r.tipo||''),csvRow('Indirizzo',r.indirizzo||'','Avanzamento',(parseInt(r.stato)||0)+'%'),csvRow('Descrizione',r.descrizione||''),csvRow(''),csvRow('MATERIALI'),csvRow('Materiale','Qty','Unità')];(r.materiali||[]).forEach(function(m){lines.push(csvRow(m.desc,m.qty,m.unit))});lines.push(csvRow(''),csvRow('OPERAI E ORE'),csvRow('Operaio','Lav.','Viag.','Str.'));(r.operai||[]).forEach(function(o){lines.push(csvRow(o.nome,fmt(o.oreLav),fmt(o.oreViag),fmt(o.oreStr)))});lines.push(csvRow(''),csvRow('Totale lavoro',fmt(r.totLav||0),'Viaggio',fmt(r.totViag||0),'Straord.',fmt(r.totStr||0)),csvRow(''),csvRow('Note',r.note||''));scarica(lines.join('\n'),(r.numero||'rapportino')+'.csv');}
 function scarica(contenuto,nome){var b=new Blob(['\uFEFF'+contenuto],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=nome;document.body.appendChild(a);a.click();document.body.removeChild(a)}
-
-
+ 
+ 
 // ── GESTIONE OPERAI ──────────────────────────────────────────────────
 var operaiLista = [];
-
+ 
 async function apriGestioneOperai() {
   document.getElementById('operai-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
   await caricaOperai();
 }
-
+ 
 function chiudiGestioneOperai() {
   document.getElementById('operai-overlay').classList.remove('open');
   document.body.style.overflow = '';
 }
-
+ 
 async function caricaOperai() {
   try {
     var res = await fetch(SCRIPT_URL + '?action=operai&_dc=' + Date.now());
@@ -329,7 +332,7 @@ async function caricaOperai() {
     document.getElementById('operai-lista').innerHTML = '<div style="color:#c0392b;font-size:13px">Errore caricamento</div>';
   }
 }
-
+ 
 function renderOperai() {
   var w = document.getElementById('operai-lista');
   if(!operaiLista.length) {
@@ -341,7 +344,7 @@ function renderOperai() {
       '<button class="operaio-del" onclick="rimuoviOperaio(' + i + ')">✕</button></div>';
   }).join('');
 }
-
+ 
 function aggiungiOperaio() {
   var input = document.getElementById('nuovo-operaio');
   var nome = (input.value || '').trim().toUpperCase();
@@ -353,13 +356,13 @@ function aggiungiOperaio() {
   renderOperai();
   input.focus();
 }
-
+ 
 function rimuoviOperaio(i) {
   if(!confirm('Rimuovere "' + operaiLista[i] + '"?')) return;
   operaiLista.splice(i, 1);
   renderOperai();
 }
-
+ 
 async function salvaOperai() {
   try {
     var res = await fetch(SCRIPT_URL, {
@@ -374,11 +377,11 @@ async function salvaOperai() {
     showAlert('Errore: ' + e.message, 'err');
   }
 }
-
-
+ 
+ 
 // ── MODIFICA RAPPORTINO ──────────────────────────────────────────
 var modOperai = [];
-
+ 
 function apriModificaModale() {
   if (!rapCorrente) return;
   var r = rapCorrente;
@@ -399,12 +402,12 @@ function apriModificaModale() {
   el('modifica-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
-
+ 
 function chiudiModifica() {
   el('modifica-overlay').classList.remove('open');
   document.body.style.overflow = '';
 }
-
+ 
 function popolaSelectModOperai() {
   // Carica lista operai dal server
   fetch(SCRIPT_URL + '?action=operai&_dc=' + Date.now())
@@ -423,7 +426,7 @@ function popolaSelectModOperai() {
       if (val) sel.value = val;
     }).catch(function() {});
 }
-
+ 
 function renderModOperai() {
   var w = el('mod-operai-lista');
   if (!modOperai.length) {
@@ -438,7 +441,7 @@ function renderModOperai() {
     '</div>';
   }).join('');
 }
-
+ 
 function modAddOp() {
   var sel = el('mod-op-nome');
   var nome = sel ? sel.value : '';
@@ -453,12 +456,12 @@ function modAddOp() {
   el('mod-op-str').value = '';
   renderModOperai();
 }
-
+ 
 function modRmOp(i) {
   modOperai.splice(i, 1);
   renderModOperai();
 }
-
+ 
 async function salvaModifica() {
   if (!rapCorrente) return;
   var r = Object.assign({}, rapCorrente);
@@ -476,7 +479,7 @@ async function salvaModifica() {
   r.totLav = modOperai.reduce(function(s, o) { return s + (parseFloat(o.oreLav) || 0); }, 0);
   r.totViag = modOperai.reduce(function(s, o) { return s + (parseFloat(o.oreViag) || 0); }, 0);
   r.totStr = modOperai.reduce(function(s, o) { return s + (parseFloat(o.oreStr) || 0); }, 0);
-
+ 
   try {
     var res = await fetch(SCRIPT_URL, {
       method: 'POST',
@@ -496,7 +499,7 @@ async function salvaModifica() {
     showAlert('Errore: ' + e.message, 'err');
   }
 }
-
+ 
 </script>
 </body>
 </html>
