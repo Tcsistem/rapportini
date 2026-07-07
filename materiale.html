@@ -37,6 +37,9 @@
     .loading.show{display:block}
     .spinner{border:3px solid #f3f3f3;border-top:3px solid #1a73e8;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;margin:0 auto}
     @keyframes spin{to{transform:rotate(360deg)}}
+    .toast{position:fixed;top:30px;left:50%;transform:translateX(-50%) translateY(-120px);background:#1a1a18;color:#fff;padding:18px 32px;border-radius:10px;font-size:16px;font-weight:600;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.25);transition:transform .4s cubic-bezier(.34,1.56,.64,1);display:flex;align-items:center;gap:12px;min-width:280px;justify-content:center}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+    .toast-icon{font-size:24px}
     .badge-sede{display:inline-block;background:#e8f0fe;color:#1a73e8;border-radius:12px;padding:2px 10px;font-size:12px;font-weight:600;margin-left:6px}
     .badge-cantiere{display:inline-block;background:#fce8e6;color:#c5221f;border-radius:12px;padding:2px 10px;font-size:12px;font-weight:600;margin-left:6px}
   </style>
@@ -91,6 +94,12 @@
     <div id="loading" class="loading"><div class="spinner"></div><p>Invio in corso...</p></div>
   </div>
 
+  <!-- TOAST CONFERMA -->
+  <div class="toast" id="toast">
+    <span class="toast-icon">✅</span>
+    <span id="toast-msg">Richiesta inviata!</span>
+  </div>
+
   <script>
     // ====== CONFIGURAZIONE — MODIFICA QUESTE DUE RIGHE ======
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwZfqQYlX5ESNT581caNx6sQHrfM-2S7ClcUHjEMWhOUsaz2ZJ3wuJ78SfKpoLPZ5P2hA/exec';
@@ -123,6 +132,14 @@
       document.getElementById('righe').innerHTML=''; addRow(); setOggi();
     }
     function setOggi(){ document.getElementById('data').value = new Date().toISOString().split('T')[0]; }
+    function showToast(msg){
+      const t=document.getElementById('toast');
+      const tm=document.getElementById('toast-msg');
+      tm.textContent=msg;
+      t.classList.add('show');
+      setTimeout(()=>t.classList.remove('show'),3500);
+    }
+
     function alertMsg(m,t){
       const a=document.getElementById('alert');
       a.textContent=m; a.className='alert show alert-'+t;
@@ -167,7 +184,7 @@
         document.getElementById('loading').classList.remove('show');
         btnInvia.disabled=false;
         alertMsg(r.message, r.success?'success':'error');
-        if(r.success) resetForm();
+        if(r.success){ showToast('✓ Richiesta inviata con successo!'); resetForm(); }
       })
       .catch(err => {
         document.getElementById('loading').classList.remove('show');
