@@ -127,7 +127,6 @@
     }
     function renum(){ document.querySelectorAll('#righe tr').forEach((tr,i)=>tr.querySelector('.num').textContent=i+1); }
     function resetForm(){
-      if(!confirm('Resettare il modulo?')) return;
       document.getElementById('form').reset();
       document.getElementById('righe').innerHTML=''; addRow(); setOggi();
     }
