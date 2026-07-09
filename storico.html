@@ -267,9 +267,9 @@
             </select>
           </td>
           <td style="white-space:nowrap">
-            <button class="btn-icon" onclick="apriDettagliRiga(${d.riga})" title="Dettagli">👁️</button>
-            <button class="btn-icon" onclick="scaricaPDFRiga(${d.riga})" title="Scarica PDF">📄</button>
-            <button class="btn-icon" onclick="eliminaRichiesta(${d.riga})" title="Elimina">🗑️</button>
+            <button class="btn-icon" onclick="apriDettagliRiga(${parseInt(d.riga)})" title="Dettagli">👁️</button>
+            <button class="btn-icon" onclick="scaricaPDFRiga(${parseInt(d.riga)})" title="Scarica PDF">📄</button>
+            <button class="btn-icon" onclick="eliminaRichiesta(${parseInt(d.riga)})" title="Elimina">🗑️</button>
           </td>
         </tr>`;
       }).join('');
@@ -287,7 +287,7 @@
         const r=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'updateStato',riga:parseInt(riga),stato:stato,token:TOKEN})});
         const res=await r.json();
         if(!res.success){alertMsg('Errore: '+res.message,'error');return;}
-        const item=datiCompleti.find(d=>d.riga==riga); if(item) item.Stato=stato;
+        const item=datiCompleti.find(d=>parseInt(d.riga)===parseInt(riga)); if(item) item.Stato=stato;
         aggiornaStats();
       }catch(e){alertMsg('Errore di rete: '+e.message,'error');}
     }
@@ -302,8 +302,8 @@
       }catch(e){alertMsg('Errore di rete: '+e.message,'error');}
     }
 
-    function apriDettagliRiga(riga){ const d=datiCompleti.find(x=>x.riga===riga); if(d) apriDettagli(d); }
-    function scaricaPDFRiga(riga){ const d=datiCompleti.find(x=>x.riga===riga); if(d) generaPDF(d); }
+    function apriDettagliRiga(riga){ const d=datiCompleti.find(x=>parseInt(x.riga)===parseInt(riga)); if(d) apriDettagli(d); else alertMsg('Errore: riga non trovata','error'); }
+    function scaricaPDFRiga(riga){ const d=datiCompleti.find(x=>parseInt(x.riga)===parseInt(riga)); if(d) generaPDF(d); else alertMsg('Errore: riga non trovata','error'); }
 
     function apriDettagli(d){
       const urg=d.Urgenza||'NORMALE';
