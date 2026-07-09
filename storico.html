@@ -187,8 +187,9 @@
       return d.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
     }
     function luogoLabel(val){
-      if(!val || val==='SEDE') return '<span class="badge badge-sede">📦 Sede</span>';
-      return '<span class="badge badge-cantiere">🏗️ Cantiere</span>';
+      const v = (val||'SEDE').toString().trim().toUpperCase();
+      if(v==='CANTIERE') return '<span class="badge badge-cantiere">🏗️ Cantiere</span>';
+      return '<span class="badge badge-sede">📦 Sede</span>';
     }
 
     async function caricaDati(){
@@ -222,8 +223,8 @@
         if(fU&&d.Urgenza!==fU) return false;
         if(fS&&(d.Stato||'Da evadere')!==fS) return false;
         if(fL){
-          const luogo=d.LuogoConsegna||d['Luogo Consegna']||'SEDE';
-          if(luogo!==fL) return false;
+          const luogo=(d.LuogoConsegna||d['Luogo Consegna']||'SEDE').toString().trim().toUpperCase();
+          if(luogo!==fL.toUpperCase()) return false;
         }
         if(q){
           const blob=[d.Commessa,d.Cantiere,d.Richiedente,d.Email,d.Dettagli,d.Note].join(' ').toLowerCase();
@@ -247,7 +248,7 @@
         const stato=d.Stato||'Da evadere';
         const statoClass='stato-'+stato.replace(/ /g,'-');
         const rowClass=urg==='URGENTISSIMO'&&stato!=='Completato'&&stato!=='Annullato'?'urgentissimo':'';
-        const luogo=d.LuogoConsegna||d['Luogo Consegna']||'SEDE';
+        const luogo=(d.LuogoConsegna||d['Luogo Consegna']||'SEDE').toString().trim().toUpperCase();
         return `<tr class="${rowClass}">
           <td>${formatDataOra(d.Timestamp)}</td>
           <td><b>${escapeHtml(d.Commessa||'-')}</b></td>
@@ -307,7 +308,7 @@
     function apriDettagli(d){
       const urg=d.Urgenza||'NORMALE';
       const stato=d.Stato||'Da evadere';
-      const luogo=d.LuogoConsegna||d['Luogo Consegna']||'SEDE';
+      const luogo=(d.LuogoConsegna||d['Luogo Consegna']||'SEDE').toString().trim().toUpperCase();
       const materiali=(d.Dettagli||'').split(' | ').filter(x=>x.trim());
       document.getElementById('modalBody').innerHTML=`
         <div class="info-grid">
@@ -342,7 +343,7 @@
     function buildPdfHtml(d){
       const urg=d.Urgenza||'NORMALE';
       const stato=d.Stato||'Da evadere';
-      const luogo=d.LuogoConsegna||d['Luogo Consegna']||'SEDE';
+      const luogo=(d.LuogoConsegna||d['Luogo Consegna']||'SEDE').toString().trim().toUpperCase();
       const luogoTesto=luogo==='CANTIERE'?'🏗️ Cantiere':'📦 In sede';
       const luogoBg=luogo==='CANTIERE'?'#fce8e6':'#e8f0fe';
       const luogoColor=luogo==='CANTIERE'?'#c5221f':'#1a73e8';
