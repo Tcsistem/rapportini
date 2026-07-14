@@ -246,7 +246,7 @@ tr:last-child td{border-bottom:none}
     </div>
   </div>
 </div>
-
+ 
 <!-- MODALE OPERAI -->
 <div class="operai-overlay" id="operai-overlay" onclick="if(event.target===this)chiudiGestioneOperai()">
   <div class="operai-modal">
@@ -268,7 +268,7 @@ tr:last-child td{border-bottom:none}
     </div>
   </div>
 </div>
-
+ 
 <script>
 var SCRIPT_URL    = 'https://script.google.com/macros/s/AKfycbzKHF52x6L9ZnZHxVq1iENY1koRe1ynG_4u_HLuFD8uCXPQhZbqRkDZa3Z7nqemvw_G/exec';
 var DASH_PASSWORD = 'Resp2025!';
@@ -307,22 +307,22 @@ function csvRow(){return Array.prototype.slice.call(arguments).map(csvE).join(',
 function esportaCSV(){if(!filtrati.length){showAlert('Nessun dato.','err');return}var lines=[csvRow('N. Rapportino','Data','Cliente','Commessa','Indirizzo','Tecnico','Tipo','Avanzamento %','Ore Lavoro','Ore Viaggio','Ore Straord.')];filtrati.forEach(function(r){lines.push(csvRow(r.numero,r.data,r.cliente,r.commessa,r.indirizzo||'',r.tecnico,r.tipo,parseInt(r.stato)||0,fmt(r.totLav||0),fmt(r.totViag||0),fmt(r.totStr||0)))});lines.push(csvRow(''));lines.push(csvRow('TOTALI','','','','','','','',fmt(filtrati.reduce(function(s,r){return s+(r.totLav||0)},0)),fmt(filtrati.reduce(function(s,r){return s+(r.totViag||0)},0)),fmt(filtrati.reduce(function(s,r){return s+(r.totStr||0)},0))));scarica(lines.join('\n'),'rapportini_'+new Date().toISOString().slice(0,10)+'.csv');}
 function esportaDettaglioCSV(){if(!rapCorrente)return;var r=rapCorrente;var lines=[csvRow('RAPPORTINO N.'+(r.numero||''),'Data',r.data||''),csvRow('Cliente',r.cliente||'','Commessa',r.commessa||''),csvRow('Tecnico',r.tecnico||'','Tipo',r.tipo||''),csvRow('Indirizzo',r.indirizzo||'','Avanzamento',(parseInt(r.stato)||0)+'%'),csvRow('Descrizione',r.descrizione||''),csvRow(''),csvRow('MATERIALI'),csvRow('Materiale','Qty','Unità')];(r.materiali||[]).forEach(function(m){lines.push(csvRow(m.desc,m.qty,m.unit))});lines.push(csvRow(''),csvRow('OPERAI E ORE'),csvRow('Operaio','Lav.','Viag.','Str.'));(r.operai||[]).forEach(function(o){lines.push(csvRow(o.nome,fmt(o.oreLav),fmt(o.oreViag),fmt(o.oreStr)))});lines.push(csvRow(''),csvRow('Totale lavoro',fmt(r.totLav||0),'Viaggio',fmt(r.totViag||0),'Straord.',fmt(r.totStr||0)),csvRow(''),csvRow('Note',r.note||''));scarica(lines.join('\n'),(r.numero||'rapportino')+'.csv');}
 function scarica(contenuto,nome){var b=new Blob(['\uFEFF'+contenuto],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=nome;document.body.appendChild(a);a.click();document.body.removeChild(a)}
-
-
+ 
+ 
 // ── GESTIONE OPERAI ──────────────────────────────────────────────────
 var operaiLista = [];
-
+ 
 async function apriGestioneOperai() {
   document.getElementById('operai-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
   await caricaOperai();
 }
-
+ 
 function chiudiGestioneOperai() {
   document.getElementById('operai-overlay').classList.remove('open');
   document.body.style.overflow = '';
 }
-
+ 
 async function caricaOperai() {
   try {
     var res = await fetch(SCRIPT_URL + '?action=operai&_dc=' + Date.now());
@@ -332,7 +332,7 @@ async function caricaOperai() {
     document.getElementById('operai-lista').innerHTML = '<div style="color:#c0392b;font-size:13px">Errore caricamento</div>';
   }
 }
-
+ 
 function renderOperai() {
   var w = document.getElementById('operai-lista');
   if(!operaiLista.length) {
@@ -344,7 +344,7 @@ function renderOperai() {
       '<button class="operaio-del" onclick="rimuoviOperaio(' + i + ')">✕</button></div>';
   }).join('');
 }
-
+ 
 function aggiungiOperaio() {
   var input = document.getElementById('nuovo-operaio');
   var nome = (input.value || '').trim().toUpperCase();
@@ -356,13 +356,13 @@ function aggiungiOperaio() {
   renderOperai();
   input.focus();
 }
-
+ 
 function rimuoviOperaio(i) {
   if(!confirm('Rimuovere "' + operaiLista[i] + '"?')) return;
   operaiLista.splice(i, 1);
   renderOperai();
 }
-
+ 
 async function salvaOperai() {
   try {
     var res = await fetch(SCRIPT_URL, {
@@ -377,11 +377,11 @@ async function salvaOperai() {
     showAlert('Errore: ' + e.message, 'err');
   }
 }
-
-
+ 
+ 
 // ── MODIFICA RAPPORTINO ──────────────────────────────────────────
 var modOperai = [];
-
+ 
 function apriModificaModale() {
   if (!rapCorrente) return;
   var r = rapCorrente;
@@ -402,12 +402,12 @@ function apriModificaModale() {
   el('modifica-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
-
+ 
 function chiudiModifica() {
   el('modifica-overlay').classList.remove('open');
   document.body.style.overflow = '';
 }
-
+ 
 function popolaSelectModOperai() {
   // Carica lista operai dal server
   fetch(SCRIPT_URL + '?action=operai&_dc=' + Date.now())
@@ -426,7 +426,7 @@ function popolaSelectModOperai() {
       if (val) sel.value = val;
     }).catch(function() {});
 }
-
+ 
 function renderModOperai() {
   var w = el('mod-operai-lista');
   if (!modOperai.length) {
@@ -441,7 +441,7 @@ function renderModOperai() {
     '</div>';
   }).join('');
 }
-
+ 
 function modAddOp() {
   var sel = el('mod-op-nome');
   var nome = sel ? sel.value : '';
@@ -456,12 +456,12 @@ function modAddOp() {
   el('mod-op-str').value = '';
   renderModOperai();
 }
-
+ 
 function modRmOp(i) {
   modOperai.splice(i, 1);
   renderModOperai();
 }
-
+ 
 async function salvaModifica() {
   if (!rapCorrente) return;
   var r = Object.assign({}, rapCorrente);
@@ -479,7 +479,7 @@ async function salvaModifica() {
   r.totLav = modOperai.reduce(function(s, o) { return s + (parseFloat(o.oreLav) || 0); }, 0);
   r.totViag = modOperai.reduce(function(s, o) { return s + (parseFloat(o.oreViag) || 0); }, 0);
   r.totStr = modOperai.reduce(function(s, o) { return s + (parseFloat(o.oreStr) || 0); }, 0);
-
+ 
   try {
     var res = await fetch(SCRIPT_URL, {
       method: 'POST',
@@ -499,7 +499,7 @@ async function salvaModifica() {
     showAlert('Errore: ' + e.message, 'err');
   }
 }
-
+ 
 </script>
 </body>
 </html>
