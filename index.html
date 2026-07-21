@@ -321,7 +321,13 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
         <input type="text" id="f-commessa" placeholder="es. C-2025-042"></div>
       <div class="fg"><label>Indirizzo intervento</label><input type="text" id="f-indirizzo" placeholder="Via, città"></div>
       <div class="fg"><label>Tecnico responsabile <span style="color:var(--red)">*</span></label>
-        <input type="text" id="f-tecnico" placeholder="NOME E COGNOME" oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase"></div>
+        <input type="text" id="f-tecnico" placeholder="CERCA TECNICO..." autocomplete="off"
+          oninput="tecnicoInputHandler(this)"
+          onfocus="tecnicoInputHandler(this)"
+          onblur="setTimeout(()=>{closeAc('tec-ac');validaTecnico()},200)"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();}"
+          style="text-transform:uppercase">
+        <div class="ac-list" id="tec-ac"></div></div>
       <div class="fg"><label>Tipo intervento</label>
         <select id="f-tipo">
           <option value="">Seleziona...</option>
@@ -710,6 +716,61 @@ function validaOpNome(){
     el('op-new-nome').value='';
   }
 }
+function tecnicoInputHandler(input){
+  input.value = input.value.toUpperCase();
+  var q = input.value.toLowerCase().trim();
+  var list = el('tec-ac');
+  var src = (operaiPred||[]);
+  if(!src.length){ list.classList.remove('open'); return; }
+  var hits = q
+    ? src.filter(function(n){return n.toLowerCase().includes(q)}).slice(0,8)
+    : src.slice(0,8);
+  if(!hits.length){list.classList.remove('open');return}
+  var inp = el('f-tecnico');
+  if(inp){
+    var rect = inp.getBoundingClientRect();
+    list.style.width = rect.width + 'px';
+    list.style.left = rect.left + 'px';
+    var spaceAbove = rect.top;
+    var spaceBelow = window.innerHeight - rect.bottom;
+    if(spaceAbove > 150 || spaceAbove > spaceBelow){
+      list.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+      list.style.top = 'auto';
+    } else {
+      list.style.top = (rect.bottom + 4) + 'px';
+      list.style.bottom = 'auto';
+    }
+  }
+  list.innerHTML = hits.map(function(n){
+    return '<div class="ac-item" onmousedown="selTecnico(''+esc(n)+'')">'+esc(n)+'</div>';
+  }).join('');
+  list.classList.add('open');
+}
+function selTecnico(val){
+  var inp = el('f-tecnico');
+  if(inp){ inp.value = val; }
+  closeAc('tec-ac');
+  // Aggiunge automaticamente il tecnico nella lista operai se non già presente
+  var giaPresente = operai.some(function(o){
+    return o.nome.toUpperCase() === val.toUpperCase();
+  });
+  if(!giaPresente){
+    operai.unshift({
+      id: Date.now()+Math.random(),
+      nome: val.toUpperCase(),
+      oreLav: 0, oreViag: 0, oreStr: 0
+    });
+    renderOp();
+  }
+}
+function validaTecnico(){
+  var nome=(v('f-tecnico')||'').toUpperCase();
+  if(!nome)return;
+  var src=(operaiPred||[]).map(function(n){return n.toUpperCase()});
+  if(!src.includes(nome)){
+    el('f-tecnico').value='';
+  }
+}
 function selAc(inputId,listId,val){var i=el(inputId);if(i)i.value=val;closeAc(listId)}
 function closeAc(listId){var l=el(listId);if(l)l.classList.remove('open')}
 
@@ -774,7 +835,7 @@ function getForm(){
   if(editId){var existing=rapportini.find(function(x){return x.id===editId});if(existing)driveFileId=existing.driveFileId||'';}
   return{id:editId||Date.now(),numero:v('f-num'),data:v('f-data'),
     cliente:v('f-cliente'),commessa:v('f-commessa'),indirizzo:v('f-indirizzo'),
-    tecnico:(v('f-tecnico')||'').toUpperCase(),tipo:v('f-tipo'),stato:v('f-stato'),
+    tecnico:(v('f-tecnico')||'').toUpperCase().trim(),tipo:v('f-tipo'),stato:v('f-stato'),
     descrizione:v('f-desc'),note:v('f-note'),
     materiali:materiali.slice(),operai:operai.slice(),totLav:totLav,totViag:totViag,totStr:totStr,
     azienda:cfg.azienda,piva:cfg.piva,tel:cfg.tel,email:cfg.email,logo:cfg.logo||'',
