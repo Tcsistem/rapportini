@@ -716,8 +716,8 @@ function filtraOpOverlay(q) {
     return;
   }
   list.innerHTML = hits.map(function(n){
-    return '<div class="ac-overlay-item" onclick="selOpOverlay(''+esc(n)+'')">'+esc(n)+'</div>';
-  }).join('');
+    return "<div class=\"ac-overlay-item\" onclick=\"selOpOverlay('"+esc(n)+"')\">" + esc(n) + "</div>";
+  }).join("");
 }
 function selOpOverlay(val) {
   var inp = el('op-new-nome');
@@ -748,8 +748,8 @@ function filtraTecOverlay(q) {
     return;
   }
   list.innerHTML = hits.map(function(n){
-    return '<div class="ac-overlay-item" onclick="selTecOverlay(''+esc(n)+'')">'+esc(n)+'</div>';
-  }).join('');
+    return "<div class=\"ac-overlay-item\" onclick=\"selTecOverlay('"+esc(n)+"')\">" + esc(n) + "</div>";
+  }).join("");
 }
 function selTecOverlay(val) {
   var inp = el('f-tecnico');
