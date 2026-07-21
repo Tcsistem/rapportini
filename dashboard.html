@@ -136,6 +136,7 @@ tr:last-child td{border-bottom:none}
       <span class="topbar-lbl" id="conn-lbl">&#8212;</span>
       <span class="topbar-lbl" id="refresh-countdown" style="color:var(--text3)"></span>
       <button class="btn" style="padding:5px 12px;font-size:12px" onclick="caricaDati()">&#8635;</button>
+      <button class="btn" style="padding:5px 12px;font-size:12px" onclick="reindex()" title="Ricostruisci indice da Drive">🔧</button>
       <button class="btn" style="padding:5px 12px;font-size:12px" onclick="apriGestioneOperai()">👷 Operai</button>
     </div>
   </div>
@@ -308,6 +309,25 @@ function esportaCSV(){if(!filtrati.length){showAlert('Nessun dato.','err');retur
 function esportaDettaglioCSV(){if(!rapCorrente)return;var r=rapCorrente;var lines=[csvRow('RAPPORTINO N.'+(r.numero||''),'Data',r.data||''),csvRow('Cliente',r.cliente||'','Commessa',r.commessa||''),csvRow('Tecnico',r.tecnico||'','Tipo',r.tipo||''),csvRow('Indirizzo',r.indirizzo||'','Avanzamento',(parseInt(r.stato)||0)+'%'),csvRow('Descrizione',r.descrizione||''),csvRow(''),csvRow('MATERIALI'),csvRow('Materiale','Qty','Unità')];(r.materiali||[]).forEach(function(m){lines.push(csvRow(m.desc,m.qty,m.unit))});lines.push(csvRow(''),csvRow('OPERAI E ORE'),csvRow('Operaio','Lav.','Viag.','Str.'));(r.operai||[]).forEach(function(o){lines.push(csvRow(o.nome,fmt(o.oreLav),fmt(o.oreViag),fmt(o.oreStr)))});lines.push(csvRow(''),csvRow('Totale lavoro',fmt(r.totLav||0),'Viaggio',fmt(r.totViag||0),'Straord.',fmt(r.totStr||0)),csvRow(''),csvRow('Note',r.note||''));scarica(lines.join('\n'),(r.numero||'rapportino')+'.csv');}
 function scarica(contenuto,nome){var b=new Blob(['\uFEFF'+contenuto],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=nome;document.body.appendChild(a);a.click();document.body.removeChild(a)}
 
+
+// ── REINDEX ──────────────────────────────────────────────────────────
+async function reindex() {
+  if(!confirm('Ricostruire l'indice leggendo tutti i file su Drive? Potrebbe richiedere qualche secondo.')) return;
+  el('conn-dot').className = 'conn-dot spin';
+  el('conn-lbl').textContent = 'Ricostruzione indice...';
+  try {
+    var res = await fetch(SCRIPT_URL + '?action=reindex&_dc=' + Date.now());
+    var d = await res.json();
+    if(d.ok) {
+      showAlert('✓ ' + d.msg, 'ok');
+      caricaDati();
+    } else {
+      showAlert('Errore: ' + (d.error||''), 'err');
+    }
+  } catch(e) {
+    showAlert('Errore: ' + e.message, 'err');
+  }
+}
 
 // ── GESTIONE OPERAI ──────────────────────────────────────────────────
 var operaiLista = [];
