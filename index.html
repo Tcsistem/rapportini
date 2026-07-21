@@ -1352,7 +1352,7 @@ function importaInRapportino() {
 <script>
 if('serviceWorker' in navigator) {
   // Registra SW inline via blob
-  const swCode = "\nconst CACHE = 'rapportini-v1';\nconst ASSETS = ['/'];\n\nself.addEventListener('install', e => {\n  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));\n  self.skipWaiting();\n});\n\nself.addEventListener('activate', e => {\n  e.waitUntil(caches.keys().then(keys =>\n    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))\n  ));\n  self.clients.claim();\n});\n\nself.addEventListener('fetch', e => {\n  if (e.request.method !== 'GET') return;\n  e.respondWith(\n    fetch(e.request).catch(() => caches.match(e.request))\n  );\n});\n";
+  const swCode = "\nconst CACHE = 'rapportini-v2';\nconst ASSETS = ['/'];\n\nself.addEventListener('install', e => {\n  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));\n  self.skipWaiting();\n});\n\nself.addEventListener('activate', e => {\n  e.waitUntil(caches.keys().then(keys =>\n    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))\n  ));\n  self.clients.claim();\n});\n\nself.addEventListener('fetch', e => {\n  if (e.request.method !== 'GET') return;\n  e.respondWith(\n    fetch(e.request).catch(() => caches.match(e.request))\n  );\n});\n";
   const blob = new Blob([swCode], {type: 'application/javascript'});
   const swUrl = URL.createObjectURL(blob);
   navigator.serviceWorker.register(swUrl).then(function(reg) {
