@@ -665,6 +665,27 @@ function acMat(input){
 function acOp(input){
   opInputHandler(input);
 }
+function posizionaDropdown(inp, list) {
+  var rect = inp.getBoundingClientRect();
+  var altezzaDropdown = Math.min(200, window.innerHeight * 0.35);
+  list.style.width = rect.width + 'px';
+  list.style.left = rect.left + 'px';
+  list.style.maxHeight = altezzaDropdown + 'px';
+  // Su mobile apri sempre sopra il campo per evitare la tastiera
+  var isMobile = window.innerWidth < 600;
+  var spaceAbove = rect.top;
+  var spaceBelow = window.innerHeight - rect.bottom;
+  if(isMobile || spaceAbove > spaceBelow || spaceAbove > 180) {
+    // Apri sopra
+    list.style.top = 'auto';
+    list.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+  } else {
+    // Apri sotto
+    list.style.top = (rect.bottom + 6) + 'px';
+    list.style.bottom = 'auto';
+  }
+}
+
 function opInputHandler(input){
   input.value = input.value.toUpperCase();
   var q = input.value.toLowerCase().trim();
@@ -680,24 +701,9 @@ function opInputHandler(input){
     ? src.filter(function(n){return n.toLowerCase().includes(q)}).slice(0,8)
     : src.slice(0,8);
   if(!hits.length){list.classList.remove('open');return}
-  // Posiziona il dropdown sopra o sotto il campo con position:fixed
+  // Posiziona il dropdown sempre sopra il campo su mobile
   var inp = el('op-new-nome');
-  if(inp){
-    var rect = inp.getBoundingClientRect();
-    var spaceAbove = rect.top;
-    var spaceBelow = window.innerHeight - rect.bottom;
-    list.style.width = rect.width + 'px';
-    list.style.left = rect.left + 'px';
-    if(spaceAbove > 150 || spaceAbove > spaceBelow){
-      // Apri sopra
-      list.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
-      list.style.top = 'auto';
-    } else {
-      // Apri sotto
-      list.style.top = (rect.bottom + 4) + 'px';
-      list.style.bottom = 'auto';
-    }
-  }
+  if(inp){ posizionaDropdown(inp, list); }
   list.innerHTML = hits.map(function(n){
     return '<div class="ac-item" onmousedown="selAcOp(\'' + esc(n) + '\')">'+esc(n)+'</div>';
   }).join('');
@@ -727,20 +733,7 @@ function tecnicoInputHandler(input){
     : src.slice(0,8);
   if(!hits.length){list.classList.remove('open');return}
   var inp = el('f-tecnico');
-  if(inp){
-    var rect = inp.getBoundingClientRect();
-    list.style.width = rect.width + 'px';
-    list.style.left = rect.left + 'px';
-    var spaceAbove = rect.top;
-    var spaceBelow = window.innerHeight - rect.bottom;
-    if(spaceAbove > 150 || spaceAbove > spaceBelow){
-      list.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
-      list.style.top = 'auto';
-    } else {
-      list.style.top = (rect.bottom + 4) + 'px';
-      list.style.bottom = 'auto';
-    }
-  }
+  if(inp){ posizionaDropdown(inp, list); }
   list.innerHTML = hits.map(function(n){
     return "<div class=\"ac-item\" onmousedown=\"selTecnico('"+esc(n)+"')\">" + esc(n) + "</div>";
   }).join("");
