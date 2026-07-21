@@ -98,6 +98,14 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
   border:1px solid var(--border2);border-radius:var(--radius-sm);z-index:9999;
   max-height:200px;overflow-y:auto;box-shadow:0 4px 24px rgba(0,0,0,.22);display:none}
 .ac-list.open{display:block}
+.ac-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000}
+.ac-overlay.open{display:flex;flex-direction:column;justify-content:flex-end}
+.ac-overlay-box{background:var(--surface);border-radius:16px 16px 0 0;padding:16px;max-height:60vh;display:flex;flex-direction:column}
+.ac-overlay-title{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:12px;text-align:center}
+.ac-overlay-search{width:100%;padding:12px;border:1px solid var(--border2);border-radius:8px;font-size:16px;margin-bottom:10px;font-family:var(--font);text-transform:uppercase}
+.ac-overlay-list{overflow-y:auto;flex:1}
+.ac-overlay-item{padding:14px 12px;border-bottom:1px solid var(--border);font-size:16px;cursor:pointer;color:var(--text)}
+.ac-overlay-item:active{background:var(--surface2)}
 .ac-item{padding:9px 12px;font-size:14px;cursor:pointer;color:var(--text)}
 .ac-item:hover,.ac-item:active{background:var(--surface2)}
 .tot-row{display:flex;gap:20px;justify-content:flex-end;padding:10px 4px 0;
@@ -321,13 +329,11 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
         <input type="text" id="f-commessa" placeholder="es. C-2025-042"></div>
       <div class="fg"><label>Indirizzo intervento</label><input type="text" id="f-indirizzo" placeholder="Via, città"></div>
       <div class="fg"><label>Tecnico responsabile <span style="color:var(--red)">*</span></label>
-        <input type="text" id="f-tecnico" placeholder="CERCA TECNICO..." autocomplete="off"
-          oninput="tecnicoInputHandler(this)"
-          onfocus="tecnicoInputHandler(this)"
-          onblur="setTimeout(()=>{closeAc('tec-ac');validaTecnico()},200)"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();}"
-          style="text-transform:uppercase">
-        <div class="ac-list" id="tec-ac"></div></div>
+        <input type="text" id="f-tecnico" placeholder="CERCA TECNICO..." autocomplete="off" readonly
+          onclick="apriTecOverlay()"
+          onfocus="apriTecOverlay()"
+          style="text-transform:uppercase;cursor:pointer;background:var(--surface)">
+        <div class="ac-list" id="tec-ac" style="display:none"></div></div>
       <div class="fg"><label>Tipo intervento</label>
         <select id="f-tipo">
           <option value="">Seleziona...</option>
@@ -395,13 +401,11 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
     </tr></thead><tbody id="op-body"></tbody></table>
     <div class="add-row">
       <div class="ac-wrap">
-        <input type="text" id="op-new-nome" placeholder="Cerca operaio..." autocomplete="off"
-          oninput="opInputHandler(this)"
-          onfocus="opInputHandler(this)"
-          onblur="setTimeout(()=>{closeAc('op-ac');validaOpNome()},200)"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();addOp()}"
-          style="text-transform:uppercase">
-        <div class="ac-list" id="op-ac"></div>
+        <input type="text" id="op-new-nome" placeholder="Cerca operaio..." autocomplete="off" readonly
+          onclick="apriOpOverlay()"
+          onfocus="apriOpOverlay()"
+          style="text-transform:uppercase;cursor:pointer;background:var(--surface)">
+        <div class="ac-list" id="op-ac" style="display:none"></div>
       </div>
       <input type="number" id="op-new-lav"  placeholder="Lav."     class="fxs" min="0" step="0.5">
       <input type="number" id="op-new-viag" placeholder="Viag."    class="fxs" min="0" step="0.5">
@@ -517,6 +521,30 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
   <div class="card">
     <div class="card-head">Log chiamate API</div>
     <div class="log-box" id="gb-log">Pronto.</div>
+  </div>
+</div>
+
+<!-- OVERLAY SELEZIONE OPERAIO MOBILE -->
+<div class="ac-overlay" id="op-overlay" onclick="if(event.target===this)chiudiOpOverlay()">
+  <div class="ac-overlay-box">
+    <div class="ac-overlay-title">Seleziona operaio</div>
+    <input type="text" class="ac-overlay-search" id="op-overlay-search"
+      placeholder="Cerca..."
+      oninput="filtraOpOverlay(this.value)"
+      autocomplete="off">
+    <div class="ac-overlay-list" id="op-overlay-list"></div>
+  </div>
+</div>
+
+<!-- OVERLAY SELEZIONE TECNICO MOBILE -->
+<div class="ac-overlay" id="tec-overlay" onclick="if(event.target===this)chiudiTecOverlay()">
+  <div class="ac-overlay-box">
+    <div class="ac-overlay-title">Seleziona tecnico</div>
+    <input type="text" class="ac-overlay-search" id="tec-overlay-search"
+      placeholder="Cerca..."
+      oninput="filtraTecOverlay(this.value)"
+      autocomplete="off">
+    <div class="ac-overlay-list" id="tec-overlay-list"></div>
   </div>
 </div>
 
@@ -665,6 +693,82 @@ function acMat(input){
 function acOp(input){
   opInputHandler(input);
 }
+// ── OVERLAY MOBILE OPERAI ────────────────────────────────────────
+function apriOpOverlay() {
+  var overlay = el('op-overlay');
+  var searchInp = el('op-overlay-search');
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  searchInp.value = '';
+  filtraOpOverlay('');
+  setTimeout(function(){ searchInp.focus(); }, 100);
+}
+function chiudiOpOverlay() {
+  el('op-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function filtraOpOverlay(q) {
+  var src = operaiPred || [];
+  var hits = q ? src.filter(function(n){ return n.toLowerCase().includes(q.toLowerCase()); }) : src;
+  var list = el('op-overlay-list');
+  if(!hits.length) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Nessun operaio trovato</div>';
+    return;
+  }
+  list.innerHTML = hits.map(function(n){
+    return '<div class="ac-overlay-item" onclick="selOpOverlay(''+esc(n)+'')">'+esc(n)+'</div>';
+  }).join('');
+}
+function selOpOverlay(val) {
+  var inp = el('op-new-nome');
+  if(inp) inp.value = val.toUpperCase();
+  chiudiOpOverlay();
+}
+
+// ── OVERLAY MOBILE TECNICO ────────────────────────────────────────
+function apriTecOverlay() {
+  var overlay = el('tec-overlay');
+  var searchInp = el('tec-overlay-search');
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  searchInp.value = '';
+  filtraTecOverlay('');
+  setTimeout(function(){ searchInp.focus(); }, 100);
+}
+function chiudiTecOverlay() {
+  el('tec-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function filtraTecOverlay(q) {
+  var src = operaiPred || [];
+  var hits = q ? src.filter(function(n){ return n.toLowerCase().includes(q.toLowerCase()); }) : src;
+  var list = el('tec-overlay-list');
+  if(!hits.length) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Nessun tecnico trovato</div>';
+    return;
+  }
+  list.innerHTML = hits.map(function(n){
+    return '<div class="ac-overlay-item" onclick="selTecOverlay(''+esc(n)+'')">'+esc(n)+'</div>';
+  }).join('');
+}
+function selTecOverlay(val) {
+  var inp = el('f-tecnico');
+  if(inp) inp.value = val.toUpperCase();
+  chiudiTecOverlay();
+  // Aggiunge il tecnico nella lista operai se non gia presente
+  var giaPresente = operai.some(function(o){
+    return o.nome.toUpperCase() === val.toUpperCase();
+  });
+  if(!giaPresente){
+    operai.unshift({
+      id: Date.now()+Math.random(),
+      nome: val.toUpperCase(),
+      oreLav: 0, oreViag: 0, oreStr: 0
+    });
+    renderOp();
+  }
+}
+
 function posizionaDropdown(inp, list) {
   var rect = inp.getBoundingClientRect();
   var altezzaDropdown = Math.min(200, window.innerHeight * 0.35);
@@ -788,7 +892,7 @@ function renderMat(){
 
 // ── OPERAI ────────────────────────────────────────────
 function addOp(){
-  var nome=(v('op-new-nome')||'').toUpperCase();if(!nome)return;
+  var nome=(v('op-new-nome')||'').toUpperCase();if(!nome){apriOpOverlay();return;}
   // Verifica che il nome sia nella lista predefinita
   var src=(operaiPred||[]).map(function(n){return n.toUpperCase()});
   if(!src.includes(nome)){showAlert('Seleziona un operaio dalla lista.','err');el('op-new-nome').value='';return;}
