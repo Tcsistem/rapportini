@@ -312,7 +312,7 @@ function scarica(contenuto,nome){var b=new Blob(['\uFEFF'+contenuto],{type:'text
 
 // ── REINDEX ──────────────────────────────────────────────────────────
 async function reindex() {
-  if(!confirm('Ricostruire l'indice leggendo tutti i file su Drive? Potrebbe richiedere qualche secondo.')) return;
+  if(!confirm('Ricostruire indice leggendo tutti i file su Drive? Potrebbe richiedere qualche secondo.')) return;
   el('conn-dot').className = 'conn-dot spin';
   el('conn-lbl').textContent = 'Ricostruzione indice...';
   try {
