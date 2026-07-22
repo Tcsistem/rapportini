@@ -197,6 +197,11 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .set-label{font-weight:500}
 .set-val{color:var(--text2);font-size:13px;max-width:60%;text-align:right;word-break:break-all}
 /* FIRMA */
+.idee-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;overflow-y:auto;padding:20px}
+.idee-overlay.open{display:flex;align-items:center;justify-content:center}
+.idee-box{background:var(--surface);border-radius:var(--radius);padding:28px;max-width:500px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.15)}
+.idee-title{font-size:18px;font-weight:600;margin-bottom:6px}
+.idee-sub{font-size:13px;color:var(--text2);margin-bottom:20px}
 .firma-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;overflow-y:auto;padding:20px}
 .firma-overlay.open{display:block}
 .firma-box{max-width:700px;margin:0 auto;background:var(--surface);border-radius:var(--radius);padding:26px}
@@ -304,9 +309,12 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 
 <div class="header">
   <div class="header-brand">Rapportini <span>di lavoro</span></div>
-  <div class="conn-pill">
-    <div class="dot" id="dot"></div>
-    <span id="conn-lbl">Drive</span>
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="btn" onclick="apriIdee()" style="padding:6px 12px;font-size:13px;border-radius:20px">💡 Idee</button>
+    <div class="conn-pill">
+      <div class="dot" id="dot"></div>
+      <span id="conn-lbl">Drive</span>
+    </div>
   </div>
 </div>
 
@@ -552,6 +560,26 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
       oninput="filtraTecOverlay(this.value)"
       autocomplete="off">
     <div class="ac-overlay-list" id="tec-overlay-list"></div>
+  </div>
+</div>
+
+<!-- IDEE E SUGGERIMENTI -->
+<div class="idee-overlay" id="idee-overlay" onclick="if(event.target===this)chiudiIdee()">
+  <div class="idee-box">
+    <div class="idee-title">💡 Idee e suggerimenti</div>
+    <div class="idee-sub">Hai un'idea o un suggerimento? Scrivici!</div>
+    <div class="fg" style="margin-bottom:14px">
+      <label>Il tuo nome</label>
+      <input type="text" id="idee-nome" placeholder="Nome e cognome">
+    </div>
+    <div class="fg" style="margin-bottom:14px">
+      <label>Messaggio <span style="color:var(--red)">*</span></label>
+      <textarea id="idee-testo" placeholder="Scrivi la tua idea o suggerimento..." style="min-height:100px"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="chiudiIdee()">Annulla</button>
+      <button class="btn btn-primary" onclick="inviaIdea()">📨 Invia</button>
+    </div>
   </div>
 </div>
 
@@ -1476,6 +1504,35 @@ function importaInRapportino() {
 </div>
 
 <script>
+// ── IDEE E SUGGERIMENTI ──────────────────────────────────────────
+function apriIdee(){
+  el('idee-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  el('idee-nome').value='';
+  el('idee-testo').value='';
+}
+function chiudiIdee(){
+  el('idee-overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+async function inviaIdea(){
+  var nome=(el('idee-nome').value||'').trim();
+  var testo=(el('idee-testo').value||'').trim();
+  if(!testo){showAlert('Scrivi un messaggio prima di inviare.','err');return;}
+  try{
+    var res=await fetch(SCRIPT_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({_action:'sendIdea',nome:nome,testo:testo})
+    });
+    var d=await res.json();
+    chiudiIdee();
+    showToastCenter('Idea inviata!\nGrazie per il suggerimento!','💡');
+  }catch(e){
+    showAlert('Errore invio: '+e.message,'err');
+  }
+}
+
 if('serviceWorker' in navigator) {
   // Registra SW inline via blob
   const swCode = "\nconst CACHE = 'rapportini-v2';\nconst ASSETS = ['/'];\n\nself.addEventListener('install', e => {\n  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));\n  self.skipWaiting();\n});\n\nself.addEventListener('activate', e => {\n  e.waitUntil(caches.keys().then(keys =>\n    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))\n  ));\n  self.clients.claim();\n});\n\nself.addEventListener('fetch', e => {\n  if (e.request.method !== 'GET') return;\n  e.respondWith(\n    fetch(e.request).catch(() => caches.match(e.request))\n  );\n});\n";
