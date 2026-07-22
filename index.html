@@ -972,11 +972,12 @@ function validaBase(){
 }
 function valida(){
   if(!validaBase())return false;
-  if(!operai.length){showAlert('Aggiungi almeno un operaio.','err');el('op-new-nome').focus();return false}
+  if(!operai.length){showAlert('Aggiungi almeno un operaio.','err');return false}
   for(var i=0;i<operai.length;i++){
     var o=operai[i];
-    if(!o.nome||!o.nome.trim()){showAlert("Nome operaio obbligatorio.",'err');return false}
-    if(!o.oreLav||o.oreLav<=0){showAlert('Ore lavoro obbligatorie per ogni operaio.','err');return false}
+    if(!o.nome||!o.nome.trim()){showAlert('Nome operaio obbligatorio.','err');return false}
+    var totOre=(o.oreLav||0)+(o.oreStr||0);
+    if(totOre<=0){showAlert('Inserire almeno le ore ordinarie o straordinarie per '+o.nome+'.','err');return false}
   }
   return true;
 }
