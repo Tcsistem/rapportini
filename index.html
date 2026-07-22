@@ -129,6 +129,13 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .alert{padding:13px 16px;border-radius:var(--radius-sm);font-size:14px;margin-bottom:14px;
   display:none;border:1px solid transparent}
 .alert.show{display:block}
+.toast-center{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.8);
+  background:#1a1a18;color:#fff;padding:28px 32px;border-radius:16px;z-index:9999;
+  box-shadow:0 8px 40px rgba(0,0,0,.35);text-align:center;min-width:260px;max-width:85vw;
+  opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1)}
+.toast-center.show{display:block;opacity:1;transform:translate(-50%,-50%) scale(1)}
+.toast-center-icon{font-size:48px;margin-bottom:12px;display:block}
+.toast-center-msg{font-size:17px;font-weight:600;line-height:1.4}
 .alert-ok{background:var(--green-bg);color:var(--green);border-color:#b8ddb8}
 .alert-err{background:var(--red-bg);color:var(--red);border-color:#e8b8b8}
 .alert-info{background:var(--blue-bg);color:var(--blue);border-color:#b8ceee}
@@ -651,6 +658,19 @@ function showTab(t){
 
 // ── ALERT / LOG / DOT ────────────────────────────────
 var _at;
+function showToastCenter(msg, icon) {
+  var t = el('toast-center');
+  var m = el('toast-center-msg');
+  var i = el('toast-center-icon');
+  if(!t) return;
+  m.textContent = msg;
+  i.textContent = icon || '✅';
+  t.classList.add('show');
+  setTimeout(function(){
+    t.classList.remove('show');
+  }, 2800);
+}
+
 function showAlert(msg,type){
   var a=el('alert');if(!a)return;
   a.className='alert alert-'+(type||'info')+' show';a.textContent=msg;
@@ -1093,7 +1113,7 @@ async function salvaESinc(){
   var r=getForm();salvaMats();upsert(r);saveDB();updateCnt();editId=r.id;
   showAlert('Salvato. Invio su Drive...','info');
   var res=await uploadDrive(r);
-  if(res){r.syncedNas=true;r.syncedAt=new Date().toISOString();if(res!==true)r.driveFileId=res;upsert(r);saveDB();showAlert('✓ Inviato su Google Drive!','ok');resetForm();}
+  if(res){r.syncedNas=true;r.syncedAt=new Date().toISOString();if(res!==true)r.driveFileId=res;upsert(r);saveDB();showToastCenter('Rapportino inviato\nsu Google Drive!', '✅');resetForm();}
   else showAlert('Salvato in locale. Errore Drive — riprova dalla scheda Sync.','err');
 }
 function renderSync(){
@@ -1283,9 +1303,11 @@ async function firmaESalva(){
     r.syncedNas=true;r.syncedAt=new Date().toISOString();
     if(res!==true)r.driveFileId=res;
     upsert(r);saveDB();
-    showAlert('✓ Rapportino firmato e inviato su Drive!','ok');
-    mostraAnteprima();
-    showTab('anteprima');
+    chiudiFirma();
+    resetForm();
+    showTab('nuovo');
+    window.scrollTo(0,0);
+    showToastCenter('Rapportino firmato\ne inviato su Drive!', '✅');
   }else{
     showAlert('Firme salvate in locale. Errore Drive — riprova dalla scheda Sync.','err');
   }
@@ -1428,6 +1450,12 @@ function importaInRapportino() {
 }
 
 </script>
+
+<!-- TOAST CENTRATO MOBILE -->
+<div class="toast-center" id="toast-center">
+  <span class="toast-center-icon" id="toast-center-icon">✅</span>
+  <div class="toast-center-msg" id="toast-center-msg"></div>
+</div>
 
 <!-- BANNER INSTALLAZIONE PWA -->
 <div id="install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;
