@@ -411,9 +411,14 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 
   <div class="card">
     <div class="card-head">Operai e ore</div>
-    <table class="tbl"><thead><tr>
-      <th class="tc-desc">Operaio</th><th class="tc-sm">Ore lavoro</th>
-      <th class="tc-sm">Ore viaggio</th><th class="tc-sm">Ore straord.</th><th class="tc-xs"></th>
+    <table class="tbl" style="font-size:12px"><thead><tr>
+      <th class="tc-desc">Operaio</th>
+      <th class="tc-sm">Ord.</th>
+      <th class="tc-sm">Str.</th>
+      <th class="tc-sm">Sab.</th>
+      <th class="tc-sm">Fest.</th>
+      <th class="tc-sm">Viag.</th>
+      <th class="tc-xs"></th>
     </tr></thead><tbody id="op-body"></tbody></table>
     <div class="add-row">
       <div class="ac-wrap">
@@ -423,15 +428,19 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
           style="text-transform:uppercase;cursor:pointer;background:var(--surface)">
         <div class="ac-list" id="op-ac" style="display:none"></div>
       </div>
-      <input type="number" id="op-new-lav"  placeholder="Lav."     class="fxs" min="0" step="0.5">
-      <input type="number" id="op-new-viag" placeholder="Viag."    class="fxs" min="0" step="0.5">
-      <input type="number" id="op-new-str"  placeholder="Straord." class="fxs" min="0" step="0.5">
+      <input type="number" id="op-new-lav"  placeholder="Ord."  class="fxs" min="0" step="0.5">
+      <input type="number" id="op-new-str"  placeholder="Str."  class="fxs" min="0" step="0.5">
+      <input type="number" id="op-new-sab"  placeholder="Sab."  class="fxs" min="0" step="0.5">
+      <input type="number" id="op-new-fest" placeholder="Fest." class="fxs" min="0" step="0.5">
+      <input type="number" id="op-new-viag" placeholder="Viag." class="fxs" min="0" step="0.5">
       <button class="btn-icon" onclick="addOp()" style="font-size:20px">+</button>
     </div>
     <div class="tot-row">
-      <span>Lavoro: <strong id="tot-lav">0</strong>h</span>
-      <span>Viaggio: <strong id="tot-viag">0</strong>h</span>
-      <span>Straord.: <strong id="tot-str">0</strong>h</span>
+      <span>Ord: <strong id="tot-lav">0</strong>h</span>
+      <span>Str: <strong id="tot-str">0</strong>h</span>
+      <span>Sab: <strong id="tot-sab">0</strong>h</span>
+      <span>Fest: <strong id="tot-fest">0</strong>h</span>
+      <span>Viag: <strong id="tot-viag">0</strong>h</span>
     </div>
   </div>
 
@@ -942,641 +951,39 @@ function renderMat(){
 // ── OPERAI ────────────────────────────────────────────
 function addOp(){
   var nome=(v('op-new-nome')||'').toUpperCase();if(!nome){apriOpOverlay();return;}
-  // Verifica che il nome sia nella lista predefinita
   var src=(operaiPred||[]).map(function(n){return n.toUpperCase()});
   if(!src.includes(nome)){showAlert('Seleziona un operaio dalla lista.','err');el('op-new-nome').value='';return;}
-  operai.push({id:Date.now()+Math.random(),nome:nome,
-    oreLav:parseFloat(el('op-new-lav').value)||0,
-    oreViag:parseFloat(el('op-new-viag').value)||0,
-    oreStr:parseFloat(el('op-new-str').value)||0});
-  el('op-new-nome').value='';el('op-new-lav').value='';el('op-new-viag').value='';el('op-new-str').value='';
+  var lav=parseFloat(el('op-new-lav').value)||0;
+  var str=parseFloat(el('op-new-str').value)||0;
+  var sab=parseFloat(el('op-new-sab').value)||0;
+  var fest=parseFloat(el('op-new-fest').value)||0;
+  var viag=parseFloat(el('op-new-viag').value)||0;
+  operai.push({id:Date.now()+Math.random(),nome:nome,oreLav:lav,oreStr:str,oreSab:sab,oreFest:fest,oreViag:viag});
+  el('op-new-nome').value='';el('op-new-lav').value='';el('op-new-str').value='';
+  el('op-new-sab').value='';el('op-new-fest').value='';el('op-new-viag').value='';
   el('op-new-nome').focus();renderOp();
 }
 function rmOp(id){operai=operai.filter(function(o){return o.id!==id});renderOp()}
 function syncOp(id,f,val){var o=operai.find(function(o){return o.id===id});if(o){o[f]=parseFloat(val)||0;aggTot()}}
 function syncOpNome(id,val){var o=operai.find(function(o){return o.id===id});if(o)o.nome=val}
+function aggTot(){
+  if(el('tot-lav')) el('tot-lav').textContent=fmt(operai.reduce(function(s,o){return s+(o.oreLav||0)},0));
+  if(el('tot-str')) el('tot-str').textContent=fmt(operai.reduce(function(s,o){return s+(o.oreStr||0)},0));
+  if(el('tot-sab')) el('tot-sab').textContent=fmt(operai.reduce(function(s,o){return s+(o.oreSab||0)},0));
+  if(el('tot-fest')) el('tot-fest').textContent=fmt(operai.reduce(function(s,o){return s+(o.oreFest||0)},0));
+  if(el('tot-viag')) el('tot-viag').textContent=fmt(operai.reduce(function(s,o){return s+(o.oreViag||0)},0));
+}
 function renderOp(){
-  el('op-body').innerHTML=operai.map(function(o){return'<tr>'+
+  el('op-body').innerHTML=operai.map(function(o){
+    return '<tr>'+
     '<td class="tc-desc"><input type="text" value="'+esc(o.nome)+'" onchange="syncOpNome('+o.id+',this.value)"></td>'+
-    '<td class="tc-sm"><input type="number" value="'+(o.oreLav||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',\'oreLav\',this.value)" placeholder="0"></td>'+
-    '<td class="tc-sm"><input type="number" value="'+(o.oreViag||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',\'oreViag\',this.value)" placeholder="0"></td>'+
-    '<td class="tc-sm"><input type="number" value="'+(o.oreStr||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',\'oreStr\',this.value)" placeholder="0"></td>'+
+    '<td class="tc-sm"><input type="number" value="'+(o.oreLav||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',\"oreLav\",this.value)" placeholder="0"></td>'+
+    '<td class="tc-sm"><input type="number" value="'+(o.oreStr||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',\"oreStr\",this.value)" placeholder="0"></td>'+
+    '<td class="tc-sm"><input type="number" value="'+(o.oreSab||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',\"oreSab\",this.value)" placeholder="0"></td>'+
+    '<td class="tc-sm"><input type="number" value="'+(o.oreFest||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',\"oreFest\",this.value)" placeholder="0"></td>'+
+    '<td class="tc-sm"><input type="number" value="'+(o.oreViag||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',\"oreViag\",this.value)" placeholder="0"></td>'+
     '<td class="tc-xs"><button class="btn-icon rm" onclick="rmOp('+o.id+')">✕</button></td>'+
-  '</tr>'}).join('');
+    '</tr>';
+  }).join('');
   aggTot();
 }
-function aggTot(){
-  el('tot-lav').textContent=fmt(operai.reduce(function(s,o){return s+o.oreLav},0));
-  el('tot-viag').textContent=fmt(operai.reduce(function(s,o){return s+o.oreViag},0));
-  el('tot-str').textContent=fmt(operai.reduce(function(s,o){return s+o.oreStr},0));
-}
-
-// ── FORM ──────────────────────────────────────────────
-function getForm(){
-  var totLav=operai.reduce(function(s,o){return s+o.oreLav},0);
-  var totViag=operai.reduce(function(s,o){return s+o.oreViag},0);
-  var totStr=operai.reduce(function(s,o){return s+o.oreStr},0);
-  // Recupera driveFileId dalla bozza esistente se stiamo modificando
-  var driveFileId='';
-  if(editId){var existing=rapportini.find(function(x){return x.id===editId});if(existing)driveFileId=existing.driveFileId||'';}
-  return{id:editId||Date.now(),numero:v('f-num'),data:v('f-data'),
-    cliente:v('f-cliente'),commessa:v('f-commessa'),indirizzo:v('f-indirizzo'),
-    tecnico:(v('f-tecnico')||'').toUpperCase().trim(),tipo:v('f-tipo'),stato:v('f-stato'),
-    descrizione:v('f-desc'),note:v('f-note'),
-    materiali:materiali.slice(),operai:operai.slice(),totLav:totLav,totViag:totViag,totStr:totStr,
-    azienda:cfg.azienda,piva:cfg.piva,tel:cfg.tel,email:cfg.email,logo:cfg.logo||'',
-    driveFileId:driveFileId,syncedNas:false,createdAt:new Date().toISOString()};
-}
-function resetForm(){
-  editId=null;
-  ['f-num','f-cliente','f-commessa','f-indirizzo','f-tecnico','f-desc','f-note'].forEach(function(id){var e=el(id);if(e)e.value=''});
-  el('f-tipo').value='';el('f-stato').value='0';el('f-data').value='';
-  materiali=[];operai=[];firmaCorrente={tecnico:null,cliente:null};
-  renderMat();renderOp();setToday();autoNum();window.scrollTo(0,0);
-}
-function validaBase(){
-  if(!v('f-commessa')){showAlert('N. Commessa obbligatorio.','err');el('f-commessa').focus();return false}
-  if(!v('f-tecnico')){showAlert('Tecnico responsabile obbligatorio.','err');el('f-tecnico').focus();return false}
-  return true;
-}
-function valida(){
-  if(!validaBase())return false;
-  if(!operai.length){showAlert('Aggiungi almeno un operaio.','err');return false}
-  for(var i=0;i<operai.length;i++){
-    var o=operai[i];
-    if(!o.nome||!o.nome.trim()){showAlert('Nome operaio obbligatorio.','err');return false}
-    var totOre=(o.oreLav||0)+(o.oreStr||0);
-    if(totOre<=0){showAlert('Inserire almeno le ore ordinarie o straordinarie per '+o.nome+'.','err');return false}
-  }
-  return true;
-}
-function upsert(r){var i=rapportini.findIndex(function(x){return x.id===r.id});if(i>=0)rapportini[i]=r;else rapportini.unshift(r)}
-function saveDB(){localStorage.setItem(K_DAT,JSON.stringify(rapportini))}
-function salvaMats(){
-  materiali.forEach(function(m){var d=m.desc.trim();if(d&&!materialiDB.includes(d))materialiDB.push(d)});
-  materialiDB.sort(function(a,b){return a.localeCompare(b,'it')});
-  localStorage.setItem(K_MATS,JSON.stringify(materialiDB));
-}
-function salvaLocale(){
-  if(!valida())return;
-  var r=getForm();salvaMats();upsert(r);saveDB();updateCnt();editId=r.id;
-  showAlert('Salvato come bozza.','ok');
-}
-
-// ── LISTA BOZZE ───────────────────────────────────────
-function renderLista(){
-  var w=el('lista-wrap');
-  if(!rapportini.length){w.innerHTML='<div class="empty">Nessuna bozza salvata.</div>';return}
-  w.innerHTML=rapportini.map(function(r){
-    var df=r.data?new Date(r.data+'T00:00:00').toLocaleDateString('it-IT'):'—';
-    var pct=parseInt(r.stato)||0;
-    var stB=pct===100?'<span class="badge b-ok">Completato</span>':'<span class="badge b-bozza">'+pct+'%</span>';
-    var sB=r.syncedNas?'<span class="badge b-sync">Drive ✓</span>':'';
-    var fB=r.firmato?'<span class="badge b-ok">✍ Firmato</span>':'';
-    return'<div class="rap-card" onclick="caricaRap('+r.id+')">'+
-      '<div class="rap-info"><h3>'+esc(r.cliente||'(nessun cliente)')+stB+sB+fB+'</h3>'+
-      '<p>'+esc(r.tipo||'—')+' · '+df+' · '+esc(r.commessa||'—')+' · '+esc(r.tecnico||'—')+'</p></div>'+
-      '<div class="rap-meta"><span class="tot">'+fmt(r.totLav||0)+'h</span><span class="num">N. '+esc(r.numero)+'</span></div>'+
-    '</div>';
-  }).join('');
-}
-function caricaRap(id){
-  var r=rapportini.find(function(x){return x.id===id});if(!r)return;
-  editId=r.id;
-  el('f-num').value=r.numero;el('f-data').value=r.data;
-  el('f-cliente').value=r.cliente;el('f-commessa').value=r.commessa||'';
-  el('f-indirizzo').value=r.indirizzo;el('f-tecnico').value=r.tecnico;
-  el('f-tipo').value=r.tipo;el('f-stato').value=r.stato;
-  el('f-desc').value=r.descrizione;el('f-note').value=r.note;
-  materiali=(r.materiali||[]).map(function(m){return Object.assign({},m)});
-  operai=(r.operai||[]).map(function(o){return Object.assign({},o)});
-  firmaCorrente=r.firme?{tecnico:r.firme.tecnico||null,cliente:r.firme.cliente||null}:{tecnico:null,cliente:null};
-  renderMat();renderOp();showTab('nuovo');window.scrollTo(0,0);
-}
-
-// ── ANTEPRIMA ─────────────────────────────────────────
-function mostraAnteprima(){
-  if(!validaBase())return;
-  var r=getForm();
-  var df=r.data?new Date(r.data+'T00:00:00').toLocaleDateString('it-IT'):'—';
-  var rM=r.materiali.map(function(m){return'<tr><td>'+esc(m.desc)+'</td><td style="text-align:center">'+esc(m.qty)+'</td><td style="text-align:center">'+esc(m.unit)+'</td></tr>'}).join('');
-  var rO=r.operai.map(function(o){return'<tr><td>'+esc(o.nome)+'</td><td style="text-align:center">'+fmt(o.oreLav)+'</td><td style="text-align:center">'+fmt(o.oreViag)+'</td><td style="text-align:center">'+fmt(o.oreStr)+'</td></tr>'}).join('');
-  var logoHtml = r.logo ? '<img src="'+r.logo+'" style="height:60px;max-width:180px;object-fit:contain;display:block;margin-bottom:4px">' : '';
-  var h='<div class="pr-header">'+
-    '<div>'+logoHtml+'<div class="pr-azienda">'+esc(r.azienda||'Azienda')+'</div>'+
-    '<div class="pr-sub">'+esc([r.piva,r.tel,r.email].filter(Boolean).join(' · '))+'</div></div>'+
-    '<div class="pr-meta"><span style="font-size:12px">Rapportino n.</span><strong>'+esc(r.numero||'—')+'</strong>'+
-    '<div style="margin-top:3px;font-size:13px">'+df+'</div></div></div>'+
-    '<div class="pr-grid">'+
-    '<div class="pr-cell">Cliente<strong>'+esc(r.cliente||'—')+'</strong></div>'+
-    '<div class="pr-cell">N. Commessa<strong>'+esc(r.commessa||'—')+'</strong></div>'+
-    '<div class="pr-cell">Indirizzo<strong>'+esc(r.indirizzo||'—')+'</strong></div>'+
-    '<div class="pr-cell">Tecnico<strong>'+esc(r.tecnico||'—')+'</strong></div>'+
-    '<div class="pr-cell">Tipo<strong>'+esc(r.tipo||'—')+'</strong></div>'+
-    '<div class="pr-cell">Avanzamento<strong>'+(parseInt(r.stato)||0)+'%</strong></div>'+
-    '</div>';
-  if(r.descrizione)h+='<div class="pr-note" style="margin-bottom:16px"><strong>Descrizione</strong><p>'+esc(r.descrizione)+'</p></div>';
-  if(r.materiali.length)h+='<div class="pr-section"><div class="pr-section-title">Materiali</div>'+
-    '<table class="pr-table"><thead><tr><th>Materiale</th><th style="text-align:center">Qtà</th><th style="text-align:center">Unità</th></tr></thead>'+
-    '<tbody>'+rM+'</tbody></table></div>';
-  if(r.operai.length)h+='<div class="pr-section"><div class="pr-section-title">Operai e ore</div>'+
-    '<table class="pr-table"><thead><tr><th>Operaio</th><th style="text-align:center">Lavoro</th><th style="text-align:center">Viaggio</th><th style="text-align:center">Straord.</th></tr></thead>'+
-    '<tbody>'+rO+'</tbody></table>'+
-    '<div class="pr-tot"><span>Lavoro: <span class="big">'+fmt(r.totLav)+'h</span></span>'+
-    '<span>Viaggio: <span class="big">'+fmt(r.totViag)+'h</span></span>'+
-    '<span>Straord.: <span class="big">'+fmt(r.totStr)+'h</span></span></div></div>';
-  if(r.note)h+='<div class="pr-note"><strong>Note</strong><p>'+esc(r.note)+'</p></div>';
-  var ftImg=firmaCorrente&&firmaCorrente.tecnico?'<img src="'+firmaCorrente.tecnico+'" style="display:block;margin-top:8px;max-width:200px;height:70px;object-fit:contain">':'';
-  var fcImg=firmaCorrente&&firmaCorrente.cliente?'<img src="'+firmaCorrente.cliente+'" style="display:block;margin-top:8px;max-width:200px;height:70px;object-fit:contain">':'';
-  h+='<div class="pr-firme">'+
-    '<div class="pr-firma-box">Firma tecnico'+ftImg+'</div>'+
-    '<div class="pr-firma-box">Firma cliente / Timbro'+fcImg+'</div>'+
-    '</div>';
-  el('ant-wrap').innerHTML=h;
-  el('ant-actions').style.display='flex';
-  showTab('anteprima');
-}
-
-// ── CSV ───────────────────────────────────────────────
-function csvR(){
-  var cells=Array.prototype.slice.call(arguments);
-  return cells.map(function(c){var s=String(c!=null?c:'');return s.includes(',')||s.includes('"')||s.includes('\n')?'"'+s.replace(/"/g,'""')+'"':s}).join(',');
-}
-function scaricaCsv(){esportaCsv(getForm())}
-function scaricaCsvNas(){if(rapCorr)esportaCsv(rapCorr)}
-function esportaCsv(r){
-  var lines=[
-    csvR('RAPPORTINO N.'+(r.numero||''),'Data',r.data||''),
-    csvR('Cliente',r.cliente||'','Commessa',r.commessa||''),
-    csvR('Tecnico',r.tecnico||'','Tipo',r.tipo||''),
-    csvR(''),csvR('MATERIALI'),csvR('Materiale','Qtà','Unità')
-  ].concat((r.materiali||[]).map(function(m){return csvR(m.desc,m.qty,m.unit)}))
-  .concat([csvR(''),csvR('OPERAI E ORE'),csvR('Operaio','Lav.','Viag.','Straord.')])
-  .concat((r.operai||[]).map(function(o){return csvR(o.nome,fmt(o.oreLav),fmt(o.oreViag),fmt(o.oreStr))}))
-  .concat([csvR(''),csvR('Totale lavoro',fmt(r.totLav||0),'Totale viaggio',fmt(r.totViag||0),'Straord.',fmt(r.totStr||0)),csvR(''),csvR('Note',r.note||'')]);
-  var blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
-  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download=(r.numero||'rapportino')+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
-}
-
-// ── DRIVE ─────────────────────────────────────────────
-async function testConn(){
-  setDot('spin');log('Verifica connessione...','info');
-  try{
-    var res=await fetch(SCRIPT_URL+'?action=ping&_dc='+Date.now());
-    var d=await res.json();
-    if(d.ok){setDot('ok');showAlert(d.msg,'ok');log(d.msg,'ok');var s=el('info-stato');if(s)s.textContent='Connesso'}
-    else{setDot('err');showAlert('Errore: '+(d.error||''),'err')}
-  }catch(e){setDot('err');showAlert('Script non raggiungibile.','err');log(e.message,'err')}
-}
-async function uploadDrive(r){
-  try{
-    log('Invio '+r.numero+'...','info');
-    var res=await fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(r)});
-    var d=await res.json();
-    if(d.ok){log((d.action==='updated'?'Aggiornato':'Salvato')+': '+d.file,'ok');return d.fileId||true}
-    log('Errore: '+d.error,'err');return false;
-  }catch(e){log('Errore: '+e.message,'err');return false}
-}
-async function salvaESinc(){
-  if(!valida())return;
-  var r=getForm();salvaMats();upsert(r);saveDB();updateCnt();editId=r.id;
-  showAlert('Salvato. Invio su Drive...','info');
-  var res=await uploadDrive(r);
-  if(res){r.syncedNas=true;r.syncedAt=new Date().toISOString();if(res!==true)r.driveFileId=res;upsert(r);saveDB();showToastCenter('Rapportino inviato\nsu Google Drive!', '✅');resetForm();}
-  else showAlert('Salvato in locale. Errore Drive — riprova dalla scheda Sync.','err');
-}
-function renderSync(){
-  var w=el('sync-list');
-  if(!rapportini.length){w.innerHTML='<div class="empty">Nessun rapportino salvato.</div>';return}
-  w.innerHTML=rapportini.map(function(r){
-    var st=r.syncedNas?'<span style="font-size:12px;color:var(--green)">✓ Drive</span>':'<span style="font-size:12px;color:var(--amber)">Non inviato</span>';
-    return'<div class="sync-item">'+
-      '<div style="flex:1"><div style="font-weight:500">'+esc(r.numero)+' — '+esc(r.cliente||'N/A')+'</div>'+
-      '<div style="font-size:12px;color:var(--text2)">'+( r.data||'—')+' · '+esc(r.tecnico||'—')+'</div></div>'+
-      st+'<button class="btn" style="padding:7px 14px;font-size:13px" onclick="sincUno('+r.id+')">Invia</button>'+
-    '</div>';
-  }).join('');
-}
-async function sincUno(id){
-  var r=rapportini.find(function(x){return x.id===id});if(!r)return;
-  var res=await uploadDrive(r);
-  if(res){r.syncedNas=true;r.syncedAt=new Date().toISOString();if(res!==true)r.driveFileId=res;upsert(r);saveDB();showAlert('Inviato su Drive.','ok');}
-  else showAlert('Errore invio.','err');
-  renderSync();
-}
-async function sincTutti(){
-  var p=rapportini.filter(function(r){return!r.syncedNas});
-  if(!p.length){showAlert('Tutti già sincronizzati.','ok');return}
-  var ok=0,err=0;
-  for(var i=0;i<p.length;i++){
-    var res=await uploadDrive(p[i]);
-    if(res){p[i].syncedNas=true;p[i].syncedAt=new Date().toISOString();if(res!==true)p[i].driveFileId=res;ok++}else err++;
-  }
-  saveDB();showAlert('Sync: '+ok+' inviati, '+err+' errori.',err?'err':'ok');renderSync();
-}
-
-// ── ARCHIVIO ──────────────────────────────────────────
-async function caricaArchivio(){
-  el('arch-lista').innerHTML='<div class="empty">Caricamento...</div>';
-  el('arch-summary').textContent='';
-  try{
-    var res=await fetch(SCRIPT_URL+'?action=list&_dc='+Date.now());
-    var d=await res.json();
-    if(!d.ok)throw new Error(d.error||'Errore');
-    archivioTutti=d.rapportini;filtraArchivio();
-  }catch(e){el('arch-lista').innerHTML='<div class="empty">Errore: '+esc(e.message)+'</div>'}
-}
-function filtraArchivio(){
-  var te=(v('arch-tecnico')||'').toLowerCase();
-  var cl=(v('arch-cliente')||'').toLowerCase();
-  var co=(v('arch-commessa')||'').toLowerCase();
-  var me=el('arch-mese')?el('arch-mese').value:'';
-  var lista=archivioTutti.filter(function(r){
-    if(te&&!(r.tecnico||'').toLowerCase().includes(te))return false;
-    if(cl&&!(r.cliente||'').toLowerCase().includes(cl))return false;
-    if(co&&!(r.commessa||'').toLowerCase().includes(co))return false;
-    if(me&&!(r.data||'').startsWith(me))return false;
-    return true;
-  });
-  if(!lista.length){el('arch-lista').innerHTML='<div class="empty">Nessun rapportino trovato.</div>';el('arch-summary').textContent='';return}
-  var tL=lista.reduce(function(s,r){return s+(r.totLav||0)},0);
-  var tV=lista.reduce(function(s,r){return s+(r.totViag||0)},0);
-  var tS=lista.reduce(function(s,r){return s+(r.totStr||0)},0);
-  el('arch-summary').textContent=lista.length+' rapportini · Lav: '+fmt(tL)+'h · Viag: '+fmt(tV)+'h · Straord: '+fmt(tS)+'h';
-  el('arch-lista').innerHTML=lista.map(function(r){
-    var df=r.data?new Date(r.data+'T00:00:00').toLocaleDateString('it-IT'):'—';
-    var pct=parseInt(r.stato)||0;
-    var stB=pct===100?'<span class="badge b-ok">Completato</span>':'<span class="badge b-bozza">'+pct+'%</span>';
-    return'<div class="rap-card" onclick="apriRapportino(\''+esc(r.fileId)+'\')">'+
-      '<div class="rap-info"><h3>'+esc(r.cliente||'(nessun cliente)')+stB+'</h3>'+
-      '<p>'+esc(r.tipo||'—')+' · '+df+' · '+esc(r.commessa||'—')+' · '+esc(r.tecnico||'—')+'</p></div>'+
-      '<div class="rap-meta"><span class="tot">'+fmt(r.totLav||0)+'h</span><span class="num">N. '+esc(r.numero)+'</span></div>'+
-    '</div>';
-  }).join('');
-}
-async function apriRapportino(fileId){
-  try{
-    var res=await fetch(SCRIPT_URL+'?action=get&fileId='+encodeURIComponent(fileId)+'&_dc='+Date.now());
-    var d=await res.json();if(!d.ok)throw new Error(d.error);
-    rapCorr=d.rapportino;mostraModale(rapCorr);
-  }catch(e){showAlert('Errore apertura: '+e.message,'err')}
-}
-function mostraModale(r){
-  var df=r.data?new Date(r.data+'T00:00:00').toLocaleDateString('it-IT'):'—';
-  var rM=(r.materiali||[]).map(function(m){return'<tr><td>'+esc(m.desc)+'</td><td style="text-align:center">'+esc(m.qty)+'</td><td style="text-align:center">'+esc(m.unit)+'</td></tr>'}).join('');
-  var rO=(r.operai||[]).map(function(o){return'<tr><td>'+esc(o.nome)+'</td><td style="text-align:center">'+fmt(o.oreLav)+'</td><td style="text-align:center">'+fmt(o.oreViag)+'</td><td style="text-align:center">'+fmt(o.oreStr)+'</td></tr>'}).join('');
-  el('mod-titolo').textContent='N.'+(r.numero||'—')+' — '+(r.cliente||'');
-  var h='<div class="pr-grid" style="margin-bottom:14px">'+
-    '<div class="pr-cell">Cliente<strong>'+esc(r.cliente||'—')+'</strong></div>'+
-    '<div class="pr-cell">Commessa<strong>'+esc(r.commessa||'—')+'</strong></div>'+
-    '<div class="pr-cell">Data<strong>'+df+'</strong></div>'+
-    '<div class="pr-cell">Tecnico<strong>'+esc(r.tecnico||'—')+'</strong></div>'+
-    '<div class="pr-cell">Tipo<strong>'+esc(r.tipo||'—')+'</strong></div>'+
-    '<div class="pr-cell">Avanzamento<strong>'+(parseInt(r.stato)||0)+'%</strong></div>'+
-    '</div>';
-  if(r.descrizione)h+='<div class="pr-note" style="margin-bottom:12px"><strong>Descrizione</strong><p>'+esc(r.descrizione)+'</p></div>';
-  if(rM)h+='<div class="pr-section"><div class="pr-section-title">Materiali</div>'+
-    '<table class="pr-table"><thead><tr><th>Materiale</th><th style="text-align:center">Qtà</th><th style="text-align:center">Unità</th></tr></thead><tbody>'+rM+'</tbody></table></div>';
-  if(rO)h+='<div class="pr-section"><div class="pr-section-title">Operai e ore</div>'+
-    '<table class="pr-table"><thead><tr><th>Operaio</th><th style="text-align:center">Lav.</th><th style="text-align:center">Viag.</th><th style="text-align:center">Straord.</th></tr></thead><tbody>'+rO+'</tbody></table>'+
-    '<div class="pr-tot"><span>Lav: <span class="big">'+fmt(r.totLav||0)+'h</span></span><span>Viag: <span class="big">'+fmt(r.totViag||0)+'h</span></span><span>Str: <span class="big">'+fmt(r.totStr||0)+'h</span></span></div></div>';
-  if(r.note)h+='<div class="pr-note"><strong>Note</strong><p>'+esc(r.note)+'</p></div>';
-  el('mod-body').innerHTML=h;
-  el('modale-overlay').classList.add('open');document.body.style.overflow='hidden';
-}
-function chiudiModale(){el('modale-overlay').classList.remove('open');document.body.style.overflow='';rapCorr=null}
-
-// ── FIRMA ─────────────────────────────────────────────
-function initPad(id){
-  var canvas=el('canvas-'+id);if(!canvas)return;
-  var dpr=window.devicePixelRatio||1;
-  canvas.width=canvas.offsetWidth*dpr;
-  canvas.height=canvas.offsetHeight*dpr;
-  var ctx=canvas.getContext('2d');
-  ctx.scale(dpr,dpr);
-  ctx.strokeStyle='#1a1a18';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';
-  padState[id]={drawing:false,empty:true};
-
-  function getXY(e){
-    var r=canvas.getBoundingClientRect();
-    var src=e.touches?e.touches[0]:e;
-    return{x:src.clientX-r.left,y:src.clientY-r.top};
-  }
-  function start(e){e.preventDefault();var p=getXY(e);ctx.beginPath();ctx.moveTo(p.x,p.y);padState[id].drawing=true;padState[id].empty=false;canvas.classList.add('signed')}
-  function move(e){e.preventDefault();if(!padState[id].drawing)return;var p=getXY(e);ctx.lineTo(p.x,p.y);ctx.stroke()}
-  function stop(e){e.preventDefault();padState[id].drawing=false}
-
-  canvas.addEventListener('mousedown',start);
-  canvas.addEventListener('mousemove',move);
-  canvas.addEventListener('mouseup',stop);
-  canvas.addEventListener('touchstart',start,{passive:false});
-  canvas.addEventListener('touchmove',move,{passive:false});
-  canvas.addEventListener('touchend',stop,{passive:false});
-}
-
-function clearFirma(id){
-  var canvas=el('canvas-'+id);if(!canvas)return;
-  var dpr=window.devicePixelRatio||1;
-  canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
-  padState[id]={drawing:false,empty:true};
-  canvas.classList.remove('signed');
-}
-
-function getFirmaDataUrl(id){
-  var canvas=el('canvas-'+id);
-  if(!canvas||!padState[id]||padState[id].empty)return null;
-  return canvas.toDataURL('image/png');
-}
-
-function apriRaccoltaFirme(){
-  if(!validaBase())return;
-  firmaRapportino=getForm();
-  clearFirma('tecnico');clearFirma('cliente');
-  firmaCorrente={tecnico:null,cliente:null};
-  el('firma-overlay').classList.add('open');
-  document.body.style.overflow='hidden';
-  setTimeout(function(){initPad('tecnico');initPad('cliente')},100);
-}
-
-function chiudiFirma(){
-  el('firma-overlay').classList.remove('open');
-  document.body.style.overflow='';
-}
-
-function stampaPdfFirma(){
-  firmaCorrente.tecnico=getFirmaDataUrl('tecnico');
-  firmaCorrente.cliente=getFirmaDataUrl('cliente');
-  chiudiFirma();
-  mostraAnteprima();
-  setTimeout(function(){window.print()},400);
-}
-
-async function firmaESalva(){
-  var ft=getFirmaDataUrl('tecnico');
-  var fc=getFirmaDataUrl('cliente');
-  if(!ft){showAlert('La firma del tecnico è obbligatoria.','err');return}
-  if(!fc){showAlert('La firma del cliente è obbligatoria.','err');return}
-  firmaCorrente={tecnico:ft,cliente:fc};
-  var r=firmaRapportino||getForm();
-  if(!valida.call(null)||!operai.length){
-    // Usa i dati del form aggiornato
-    r=getForm();
-  }
-  r.firme={tecnico:ft,cliente:fc,dataFirma:new Date().toISOString()};
-  r.firmato=true;
-  salvaMats();upsert(r);saveDB();updateCnt();editId=r.id;
-  chiudiFirma();
-  showAlert('Firme acquisite. Invio su Drive...','info');
-  var res=await uploadDrive(r);
-  if(res){
-    r.syncedNas=true;r.syncedAt=new Date().toISOString();
-    if(res!==true)r.driveFileId=res;
-    upsert(r);saveDB();
-    chiudiFirma();
-    resetForm();
-    showTab('nuovo');
-    window.scrollTo(0,0);
-    showToastCenter('Rapportino firmato\ne inviato su Drive!', '✅');
-  }else{
-    showAlert('Firme salvate in locale. Errore Drive — riprova dalla scheda Sync.','err');
-  }
-}
-
-// ── GEOBADGE ──────────────────────────────────────────────────────────────
-let gbDati = { commesse: [], luoghi: {}, clienti: {} };
-
-function gbLog(msg, type) {
-  var b = el('gb-log'); if(!b) return;
-  var t = new Date().toLocaleTimeString('it-IT');
-  b.innerHTML = '<span'+(type?' class="log-'+type+'"':'')+'>['+ t+'] '+esc(msg)+'</span>\n'+b.innerHTML;
-}
-function gbSetDot(s) { var d=el('gb-dot');if(!d)return;d.className='dot';if(s)d.classList.add(s); }
-function gbErr(msg) {
-  var e=el('gb-error');if(e){e.style.display='block';e.textContent=msg;}
-  var s=el('gb-stato');if(s)s.textContent=msg;
-  gbSetDot('err');
-}
-
-async function gbFetch(path) {
-  gbLog('GET ' + path, 'info');
-  var res = await fetch(SCRIPT_URL + '?action=gb&path=' + encodeURIComponent(path) + '&_dc=' + Date.now());
-  if(!res.ok) throw new Error('HTTP ' + res.status);
-  var w = await res.json();
-  if(!w.ok) throw new Error(w.error || 'Errore GeoBadge');
-  gbLog('OK ' + path + ' (' + (Array.isArray(w.data) ? w.data.length + ' items' : 'obj') + ')', 'ok');
-  return w.data;
-}
-
-var gbDescUniche = [];
-
-function gbPopulaSelect(filtro) {
-  var sel = el('gb-commessa-sel'); if(!sel) return;
-  sel.innerHTML = '';
-  var q = filtro.toLowerCase().trim();
-  var lista = q ? gbDescUniche.filter(function(d){ return d.toLowerCase().includes(q); }) : gbDescUniche;
-  lista.forEach(function(desc) {
-    var opt = document.createElement('option');
-    opt.value = desc;
-    opt.textContent = desc;
-    sel.appendChild(opt);
-  });
-  // auto-seleziona se c'è solo un risultato
-  if(lista.length === 1) {
-    sel.selectedIndex = 0;
-    sel.dispatchEvent(new Event('change'));
-  }
-}
-
-function gbFiltroRicerca(q) {
-  gbPopulaSelect(q);
-  var det = el('gb-dettaglio'); if(det) det.style.display='none';
-}
-
-async function caricaDatiGeobadge() {
-  gbSetDot('spin');
-  var s = el('gb-stato'); if(s) s.textContent = 'Connessione a GeoBadge...';
-  var e = el('gb-error'); if(e) e.style.display = 'none';
-  var w = el('gb-commesse-wrap'); if(w) w.style.display = 'none';
-  var gs = el('gb-search'); if(gs) gs.value = '';
-  try {
-    gbLog('Carico clienti...', 'info');
-    var clienti = await gbFetch('/clienti').catch(function(err){ gbLog('Clienti: '+err.message,'err'); return []; });
-    gbLog('Carico luoghi...', 'info');
-    var luoghi = await gbFetch('/luoghi').catch(function(err){ gbLog('Luoghi: '+err.message,'err'); return []; });
-    gbLog('Carico servizi...', 'info');
-    var commesse = await gbFetch('/servizi').catch(function(err){ gbLog('Servizi: '+err.message,'err'); return []; });
-
-    clienti  = Array.isArray(clienti)  ? clienti  : [];
-    luoghi   = Array.isArray(luoghi)   ? luoghi   : [];
-    commesse = Array.isArray(commesse) ? commesse : [];
-
-    gbDati.luoghi  = {}; luoghi.forEach(function(l){ gbDati.luoghi[l.Id||l.id] = l; });
-    gbDati.clienti = {}; clienti.forEach(function(cl){ gbDati.clienti[cl.AziendaId||cl.Id||cl.id] = cl; });
-    gbDati.commesse = commesse;
-
-    gbLog('Clienti: '+clienti.length+', Luoghi: '+luoghi.length+', Servizi: '+commesse.length, 'ok');
-
-    gbDescUniche = [];
-    var descViste = {};
-    commesse.forEach(function(a) {
-      var desc = a.Descrizione || '';
-      if(!desc || descViste[desc]) return;
-      descViste[desc] = true;
-      gbDescUniche.push(desc);
-    });
-    gbPopulaSelect('');
-    gbSetDot('ok');
-    if(s) s.textContent = 'GeoBadge connesso — '+commesse.length+' servizi, '+clienti.length+' clienti, '+luoghi.length+' luoghi';
-    if(w) w.style.display = 'block';
-  } catch(err) {
-    gbErr('Errore: ' + err.message);
-    gbLog('ERRORE: ' + err.message, 'err');
-  }
-}
-
-document.addEventListener('change', function(e) {
-  if(!e.target || e.target.id !== 'gb-commessa-sel') return;
-  var id = e.target.value;
-  var det = el('gb-dettaglio');
-  if(!id) { if(det) det.style.display='none'; return; }
-  var comm = gbDati.commesse.find(function(a){ return (a.Descrizione||'') === id; });
-  if(!comm) return;
-  var dco = el('gb-det-commessa'); if(dco) dco.textContent = comm.Descrizione || id;
-  var dn = el('gb-det-numero');    if(dn) dn.textContent = comm.Numero || '—';
-  var dc = el('gb-det-cliente');   if(dc) dc.textContent = '...';
-  if(det) det.style.display = 'block';
-  // Carica azienda tramite API
-  if(comm.IdAzienda) {
-    gbFetch('/azienda/' + comm.IdAzienda).then(function(az) {
-      if(dc) dc.textContent = az ? (az.Descrizione || az.RagioneSociale || '—') : '—';
-      gbDati._aziendaCorrente = az;
-    }).catch(function(){ if(dc) dc.textContent = '—'; });
-  }
-});
-
-function importaInRapportino() {
-  var sel = el('gb-commessa-sel');
-  if(!sel || !sel.value) { showAlert("Seleziona un servizio da GeoBadge.",'err'); return; }
-  var id   = sel.value;
-  var comm = gbDati.commesse.find(function(a){ return (a.Descrizione||'') === id; });
-  if(!comm) return;
-  var clienteId = comm.IdAzienda || comm.ClienteId || comm.clienteId;
-  var luogoId   = comm.LuogoId   || comm.luogoId;
-  var cliente   = clienteId ? gbDati.clienti[clienteId] : null;
-  var luogo     = luogoId   ? gbDati.luoghi[luogoId]    : null;
-
-  var fc = el('f-commessa'); if(fc) fc.value = comm.Descrizione || id;
-  var az = gbDati._aziendaCorrente;
-  var fcl = el('f-cliente'); if(fcl) fcl.value = az ? (az.Descrizione || az.RagioneSociale || '') : (cliente ? (cliente.Descrizione||'') : '');
-  var fi = el('f-indirizzo');
-  if(fi && luogo) {
-    var ind = luogo.Indirizzo || {};
-    fi.value = [ind.Via||'', ind.NumeroCivico||'', ind.Cap||'', ind.Citta||''].filter(Boolean).join(' ').trim() || luogo.Descrizione || '';
-  }
-  showAlert('✓ Dati GeoBadge importati!', 'ok');
-  showTab('nuovo');
-  gbLog('Importato: '+(comm.Numero||comm.Descrizione||id)+', cliente: '+(cliente?cliente.Descrizione:'—'), 'ok');
-}
-
-</script>
-
-<!-- TOAST CENTRATO MOBILE -->
-<div class="toast-center" id="toast-center">
-  <span class="toast-center-icon" id="toast-center-icon">✅</span>
-  <div class="toast-center-msg" id="toast-center-msg"></div>
-</div>
-
-<!-- BANNER INSTALLAZIONE PWA -->
-<div id="install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;
-  background:#1a1a18;color:#f5f4f0;padding:16px 20px;z-index:500;
-  align-items:center;gap:12px;box-shadow:0 -4px 20px rgba(0,0,0,.3)">
-  <div style="font-size:28px">📋</div>
-  <div style="flex:1">
-    <div style="font-size:14px;font-weight:500">Installa l'app</div>
-    <div style="font-size:12px;color:#9b9a92;margin-top:2px">Aggiungi Rapportini alla schermata Home</div>
-  </div>
-  <button onclick="installApp()" style="background:#f5f4f0;color:#1a1a18;border:none;
-    border-radius:8px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer">
-    Installa
-  </button>
-  <button onclick="chiudiBanner()" style="background:none;border:none;color:#9b9a92;
-    font-size:20px;cursor:pointer;padding:4px">✕</button>
-</div>
-
-<script>
-// ── IDEE E SUGGERIMENTI ──────────────────────────────────────────
-function apriIdee(){
-  el('idee-overlay').classList.add('open');
-  document.body.style.overflow='hidden';
-  el('idee-nome').value='';
-  el('idee-testo').value='';
-}
-function chiudiIdee(){
-  el('idee-overlay').classList.remove('open');
-  document.body.style.overflow='';
-}
-async function inviaIdea(){
-  var nome=(el('idee-nome').value||'').trim();
-  var testo=(el('idee-testo').value||'').trim();
-  if(!testo){showAlert('Scrivi un messaggio prima di inviare.','err');return;}
-  try{
-    var res=await fetch(SCRIPT_URL,{
-      method:'POST',
-      headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({_action:'sendIdea',nome:nome,testo:testo})
-    });
-    var d=await res.json();
-    chiudiIdee();
-    showToastCenter('Idea inviata!\nGrazie per il suggerimento!','💡');
-  }catch(e){
-    showAlert('Errore invio: '+e.message,'err');
-  }
-}
-
-if('serviceWorker' in navigator) {
-  // Registra SW inline via blob
-  const swCode = "\nconst CACHE = 'rapportini-v2';\nconst ASSETS = ['/'];\n\nself.addEventListener('install', e => {\n  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));\n  self.skipWaiting();\n});\n\nself.addEventListener('activate', e => {\n  e.waitUntil(caches.keys().then(keys =>\n    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))\n  ));\n  self.clients.claim();\n});\n\nself.addEventListener('fetch', e => {\n  if (e.request.method !== 'GET') return;\n  e.respondWith(\n    fetch(e.request).catch(() => caches.match(e.request))\n  );\n});\n";
-  const blob = new Blob([swCode], {type: 'application/javascript'});
-  const swUrl = URL.createObjectURL(blob);
-  navigator.serviceWorker.register(swUrl).then(function(reg) {
-    console.log('SW registrato');
-  }).catch(function(e) {
-    console.log('SW non disponibile (Apps Script):', e.message);
-  });
-}
-
-// Banner installazione
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', function(e) {
-  e.preventDefault();
-  deferredPrompt = e;
-  // Mostra banner dopo 3 secondi se non già installata
-  setTimeout(function() {
-    if(deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
-      mostraBannerInstall();
-    }
-  }, 3000);
-});
-
-function mostraBannerInstall() {
-  var banner = document.getElementById('install-banner');
-  if(banner) banner.style.display = 'flex';
-}
-
-function installApp() {
-  var banner = document.getElementById('install-banner');
-  if(banner) banner.style.display = 'none';
-  if(deferredPrompt) {
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(function() { deferredPrompt = null; });
-  }
-}
-
-function chiudiBanner() {
-  var banner = document.getElementById('install-banner');
-  if(banner) banner.style.display = 'none';
-}
-</script>
-</body>
-</html>
