@@ -67,7 +67,7 @@ tr:last-child td{border-bottom:none}
   <div class="topbar-brand">&#9672; <strong>Costi</strong> Manodopera</div>
   <div style="display:flex;gap:10px;align-items:center">
     <button class="btn no-print" onclick="window.print()">🖨️ Stampa</button>
-    <a href="dashboard.html" style="padding:7px 14px;font-size:13px;border:1px solid var(--border2);border-radius:6px;color:var(--text);text-decoration:none;background:var(--surface2)">← Dashboard</a>
+    <button onclick="history.back()" style="padding:7px 14px;font-size:13px;border:1px solid var(--border2);border-radius:6px;color:var(--text);background:var(--surface2);cursor:pointer;font-family:var(--font)">← Dashboard</button>
   </div>
 </div>
 
@@ -212,52 +212,45 @@ function selezionaCommessa(commessa){
   // Mostra info commessa
   el('commessa-sel-info').innerHTML =
     '<div style="display:flex;gap:16px;flex-wrap:wrap;padding:12px 16px;background:var(--surface2);border-radius:6px;margin-bottom:16px">' +
-    '<div><div style="font-size:10px;font-family:var(--mono);text-transform:uppercase;color:var(--text3)">Commessa</div><div style="font-weight:600">'+esc(commessa)+'</div></div>' +
-    '<div><div style="font-size:10px;font-family:var(--mono);text-transform:uppercase;color:var(--text3)">Cliente</div><div>'+esc(commessaSelezionata.cliente)+'</div></div>' +
-    '<div><div style="font-size:10px;font-family:var(--mono);text-transform:uppercase;color:var(--text3)">Rapportini</div><div>'+commessaSelezionata.rapportini.length+'</div></div>' +
+    '<div><div style="font-size:10px;font-family:var(--mono);text-transform:uppercase;color:var(--text3)">Commessa</div><div style="font-weight:600">' + esc(commessa) + '</div></div>' +
+    '<div><div style="font-size:10px;font-family:var(--mono);text-transform:uppercase;color:var(--text3)">Cliente</div><div>' + esc(commessaSelezionata.cliente) + '</div></div>' +
+    '<div><div style="font-size:10px;font-family:var(--mono);text-transform:uppercase;color:var(--text3)">Rapportini</div><div>' + commessaSelezionata.rapportini.length + '</div></div>' +
     '</div>';
 
   // Tabella tariffe
   var operai = Object.values(operaiMap);
-  el('tabella-tariffe').innerHTML =
-    '<table><thead><tr>' +
-    '<th>Operaio</th>' +
-    '<th style="text-align:right">Ore ord.</th>' +
-    '<th style="text-align:right">Ore str.</th>' +
-    '<th style="text-align:right">Ore viag.</th>' +
-    '<th>€/h ordinario</th>' +
-    '<th>€/h straord.</th>' +
-    '<th>€/h viaggio</th>' +
-    '</tr></thead><tbody>' +
-    operai.map(function(o){
+  if(!operai.length){
+    el('tabella-tariffe').innerHTML = '<div class="empty">Nessun operaio trovato nei rapportini di questa commessa</div>';
+  } else {
+    var rows = operai.map(function(o, idx){
       var t = tarifffeSalvate[o.nome] || {};
-      return '<tr>'+
-        '<td style="font-weight:500">'+esc(o.nome)+'</td>'+
-        '<td style="text-align:right;font-family:var(--mono)">'+fmt(o.oreLav)+'h</td>'+
-        '<td style="text-align:right;font-family:var(--mono)">'+fmt(o.oreStr)+'h</td>'+
-        '<td style="text-align:right;font-family:var(--mono)">'+fmt(o.oreViag)+'h</td>'+
-        '<td><input type="number" id="tar-lav-'+btoa(o.nome).replace(/=/g,'')+'" value="'+(t.lav||'')+'" placeholder="0.00" min="0" step="0.5" onchange="salvaTariffa(\''+esc(o.nome)+'\')"></td>'+
-        '<td><input type="number" id="tar-str-'+btoa(o.nome).replace(/=/g,'')+'" value="'+(t.str||'')+'" placeholder="0.00" min="0" step="0.5" onchange="salvaTariffa(\''+esc(o.nome)+'\')"></td>'+
-        '<td><input type="number" id="tar-viag-'+btoa(o.nome).replace(/=/g,'')+'" value="'+(t.viag||'')+'" placeholder="0.00" min="0" step="0.5" onchange="salvaTariffa(\''+esc(o.nome)+'\')"></td>'+
+      return '<tr>' +
+        '<td style="font-weight:500">' + esc(o.nome) + '</td>' +
+        '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreLav) + 'h</td>' +
+        '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreStr) + 'h</td>' +
+        '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreViag) + 'h</td>' +
+        '<td><input type="number" class="tar-lav" data-idx="' + idx + '" data-nome="' + esc(o.nome) + '" value="' + (t.lav || '') + '" placeholder="0.00" min="0" step="0.5"></td>' +
+        '<td><input type="number" class="tar-str" data-idx="' + idx + '" data-nome="' + esc(o.nome) + '" value="' + (t.str || '') + '" placeholder="0.00" min="0" step="0.5"></td>' +
+        '<td><input type="number" class="tar-viag" data-idx="' + idx + '" data-nome="' + esc(o.nome) + '" value="' + (t.viag || '') + '" placeholder="0.00" min="0" step="0.5"></td>' +
       '</tr>';
-    }).join('') +
-    '</tbody></table>';
+    }).join('');
+    el('tabella-tariffe').innerHTML =
+      '<table><thead><tr>' +
+      '<th>Operaio</th>' +
+      '<th style="text-align:right">Ore ord.</th>' +
+      '<th style="text-align:right">Ore str.</th>' +
+      '<th style="text-align:right">Ore viag.</th>' +
+      '<th>€/h ordinario</th>' +
+      '<th>€/h straord.</th>' +
+      '<th>€/h viaggio</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+  }
 
   el('step1').style.display = 'none';
   el('step2').style.display = 'block';
   el('step3').style.display = 'none';
 }
 
-function btoa_safe(s){ try{ return btoa(unescape(encodeURIComponent(s))); } catch(e){ return btoa(s); } }
-
-function salvaTariffa(nome){
-  var id = btoa(nome).replace(/=/g,'');
-  var lav  = parseFloat(document.getElementById('tar-lav-'+id)?.value) || 0;
-  var str  = parseFloat(document.getElementById('tar-str-'+id)?.value) || 0;
-  var viag = parseFloat(document.getElementById('tar-viag-'+id)?.value) || 0;
-  tarifffeSalvate[nome] = { lav: lav, str: str, viag: viag };
-  localStorage.setItem('tariffe_costi', JSON.stringify(tarifffeSalvate));
-}
 
 function calcolaCosti(){
   if(!commessaSelezionata) return;
@@ -266,10 +259,10 @@ function calcolaCosti(){
   var totCostoLav = 0, totCostoStr = 0, totCostoViag = 0, totOreLav = 0, totOreStr = 0, totOreViag = 0;
 
   operai.forEach(function(o){
-    var id = btoa(o.nome).replace(/=/g,'');
-    var tLav  = parseFloat(document.getElementById('tar-lav-'+id)?.value) || 0;
-    var tStr  = parseFloat(document.getElementById('tar-str-'+id)?.value) || 0;
-    var tViag = parseFloat(document.getElementById('tar-viag-'+id)?.value) || 0;
+    salvaTariffa(o.nome);
+    var tLav  = getTariffaVal('tar-lav', o.nome);
+    var tStr  = getTariffaVal('tar-str', o.nome);
+    var tViag = getTariffaVal('tar-viag', o.nome);
     var cLav  = o.oreLav  * tLav;
     var cStr  = o.oreStr  * tStr;
     var cViag = o.oreViag * tViag;
