@@ -19,100 +19,87 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14
 .btn:hover{background:var(--surface3)}
 .btn-accent{background:var(--text);color:#fff;border-color:var(--text)}
 .btn-accent:hover{opacity:.88}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
-@media(max-width:700px){.grid2{grid-template-columns:1fr}.grid3{grid-template-columns:1fr}}
-.fg{display:flex;flex-direction:column;gap:5px}
 label{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--text3)}
 input,select{background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:9px 12px;font-size:13px;font-family:var(--font);color:var(--text);width:100%}
 input:focus,select:focus{outline:none;border-color:var(--text)}
-.commessa-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--border);border-radius:6px;cursor:pointer;margin-bottom:8px;transition:all .15s}
+.commessa-item{display:flex;align-items:center;gap:10px;padding:12px 16px;border:1px solid var(--border);border-radius:6px;cursor:pointer;margin-bottom:8px;transition:all .15s}
 .commessa-item:hover{border-color:var(--text);background:var(--surface2)}
-.commessa-item.selected{border-color:var(--blue);background:#e8f0fa}
-.commessa-code{font-family:var(--mono);font-size:12px;color:var(--blue);font-weight:500;min-width:100px}
+.commessa-code{font-family:var(--mono);font-size:12px;color:var(--blue);font-weight:600;min-width:120px}
 .commessa-info{flex:1;font-size:13px}
-.commessa-info span{color:var(--text2);font-size:12px}
+.commessa-info small{color:var(--text2);font-size:12px}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-family:var(--mono);background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--text3);padding:10px 12px;border-bottom:1px solid var(--border2);white-space:nowrap;background:var(--surface2)}
 td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
 td input{padding:7px 10px;font-size:13px}
 tr:last-child td{border-bottom:none}
-.tot-bar{display:flex;gap:24px;flex-wrap:wrap;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:20px}
-.tot-item{display:flex;flex-direction:column;gap:3px}
+.tot-bar{display:flex;gap:24px;flex-wrap:wrap;padding:20px 24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:20px;align-items:flex-end}
+.tot-item{display:flex;flex-direction:column;gap:4px}
 .tot-label{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--text3)}
-.tot-val{font-size:22px;font-weight:300;letter-spacing:-.5px}
-.tot-val.green{color:var(--green)}
-.tot-val.blue{color:var(--blue)}
-.tot-val.amber{color:var(--amber)}
-.tot-val.red{color:var(--red)}
-.tot-val.big{font-size:28px;font-weight:500}
+.tot-val{font-size:24px;font-weight:300;letter-spacing:-.5px}
+.green{color:var(--green)}.blue{color:var(--blue)}.amber{color:var(--amber)}.red{color:var(--red)}
+.big{font-size:32px;font-weight:500}
 .empty{text-align:center;padding:40px;color:var(--text3);font-family:var(--mono);font-size:13px}
-.alert{padding:12px 16px;border-radius:6px;font-size:13px;margin-bottom:16px;display:none}
+.alert{padding:12px 16px;border-radius:6px;font-size:13px;margin-bottom:16px;display:none;background:#fae8e8;color:#7a1a1a;border:1px solid #e8b8b8}
 .alert.show{display:block}
-.alert-err{background:#fae8e8;color:#7a1a1a;border:1px solid #e8b8b8}
-.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-family:var(--mono);background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
-.section-title{font-size:15px;font-weight:600;margin-bottom:4px}
-.section-sub{font-size:13px;color:var(--text2);margin-bottom:16px}
-.cost-row{background:var(--surface2)}
-@media print{
-  .topbar,.no-print{display:none!important}
-  body{background:#fff}
-  .card{border:1px solid #ccc;box-shadow:none}
-}
+.info-box{display:flex;gap:20px;flex-wrap:wrap;padding:14px 16px;background:var(--surface2);border-radius:6px;margin-bottom:16px}
+.info-box-item .lbl{font-size:10px;font-family:var(--mono);text-transform:uppercase;color:var(--text3)}
+.info-box-item .val{font-size:14px;font-weight:600;margin-top:2px}
+@media print{.no-print{display:none!important}body{background:#fff}.card{border:1px solid #ccc}}
 </style>
 </head>
 <body>
 <div class="topbar">
   <div class="topbar-brand">&#9672; <strong>Costi</strong> Manodopera</div>
   <div style="display:flex;gap:10px;align-items:center">
-    <button class="btn no-print" onclick="window.print()">🖨️ Stampa</button>
-    <button onclick="history.back()" style="padding:7px 14px;font-size:13px;border:1px solid var(--border2);border-radius:6px;color:var(--text);background:var(--surface2);cursor:pointer;font-family:var(--font)">← Dashboard</button>
+    <button class="btn no-print" onclick="window.print()">&#128438; Stampa</button>
+    <button class="btn no-print" onclick="history.back()" style="background:var(--text);color:#fff;border-color:var(--text)">&#8592; Dashboard</button>
   </div>
 </div>
 
 <div class="main">
-  <div id="alert" class="alert alert-err"></div>
+  <div id="alert" class="alert"></div>
 
-  <!-- STEP 1: Seleziona commessa -->
+  <!-- STEP 1 -->
   <div class="card" id="step1">
     <div class="card-title">1 — Seleziona commessa</div>
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
       <input type="text" id="search-commessa" placeholder="Cerca commessa, cliente..." oninput="filtraCommesse()" style="max-width:300px">
-      <button class="btn btn-accent" onclick="caricaCommesse()">↻ Aggiorna</button>
+      <button class="btn btn-accent" onclick="caricaCommesse()">&#8635; Aggiorna</button>
     </div>
     <div id="lista-commesse"><div class="empty">Caricamento...</div></div>
   </div>
 
-  <!-- STEP 2: Tariffe -->
+  <!-- STEP 2 -->
   <div class="card" id="step2" style="display:none">
-    <div class="card-title">2 — Tariffe orarie (€/h)</div>
-    <div id="commessa-sel-info" style="margin-bottom:16px"></div>
-    <div id="tabella-tariffe"></div>
-    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn btn-accent" onclick="calcolaCosti()">📊 Calcola costi</button>
-      <button class="btn no-print" onclick="resetSelezione()">← Cambia commessa</button>
+    <div class="card-title">2 — Tariffe orarie (&#8364;/h)</div>
+    <div id="info-commessa"></div>
+    <div id="tabella-tariffe"><div class="empty">Caricamento operai...</div></div>
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap" class="no-print">
+      <button class="btn btn-accent" onclick="calcolaCosti()">&#128202; Calcola costi</button>
+      <button class="btn" onclick="resetSelezione()">&#8592; Cambia commessa</button>
     </div>
   </div>
 
-  <!-- STEP 3: Risultato -->
+  <!-- STEP 3 -->
   <div id="step3" style="display:none">
     <div class="tot-bar" id="tot-bar"></div>
     <div class="card">
       <div class="card-title">Dettaglio per operaio</div>
       <div class="table-wrap">
-        <table id="tabella-risultato">
+        <table>
           <thead>
             <tr>
               <th>Operaio</th>
               <th style="text-align:right">Ore ord.</th>
-              <th style="text-align:right">€/h ord.</th>
+              <th style="text-align:right">&#8364;/h ord.</th>
               <th style="text-align:right">Costo ord.</th>
               <th style="text-align:right">Ore str.</th>
-              <th style="text-align:right">€/h str.</th>
+              <th style="text-align:right">&#8364;/h str.</th>
               <th style="text-align:right">Costo str.</th>
               <th style="text-align:right">Ore viag.</th>
-              <th style="text-align:right">€/h viag.</th>
+              <th style="text-align:right">&#8364;/h viag.</th>
               <th style="text-align:right">Costo viag.</th>
               <th style="text-align:right">Totale</th>
             </tr>
@@ -125,232 +112,246 @@ tr:last-child td{border-bottom:none}
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzKHF52x6L9ZnZHxVq1iENY1koRe1ynG_4u_HLuFD8uCXPQhZbqRkDZa3Z7nqemvw_G/exec';
+var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzKHF52x6L9ZnZHxVq1iENY1koRe1ynG_4u_HLuFD8uCXPQhZbqRkDZa3Z7nqemvw_G/exec';
+var tuttiRapportini = [];
+var commesseMap = {};
+var commessaCorrente = null;
+var tariffe = {};
 
-let tuttiRapportini = [];
-let commesseMap = {};
-let commessaSelezionata = null;
-let tarifffeSalvate = JSON.parse(localStorage.getItem('tariffe_costi') || '{}');
+try { tariffe = JSON.parse(localStorage.getItem('tariffe_v1') || '{}'); } catch(e) {}
 
-function el(id){ return document.getElementById(id); }
-function fmt(n){ n=Number(n)||0; return n%1===0?n:n.toFixed(1); }
-function fmtEur(n){ return '€ '+(Number(n)||0).toFixed(2).replace('.',','); }
-function showAlert(msg){ var a=el('alert'); a.textContent=msg; a.classList.add('show'); setTimeout(()=>a.classList.remove('show'),5000); }
+function el(id) { return document.getElementById(id); }
+function fmt(n) { n = Number(n) || 0; return n % 1 === 0 ? n : n.toFixed(1); }
+function fmtEur(n) { return '\u20ac ' + (Number(n) || 0).toFixed(2).replace('.', ','); }
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"']/g, function(c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function showAlert(msg) {
+  var a = el('alert');
+  a.textContent = msg;
+  a.classList.add('show');
+  setTimeout(function() { a.classList.remove('show'); }, 5000);
+}
 
-async function caricaCommesse(){
+async function caricaCommesse() {
   el('lista-commesse').innerHTML = '<div class="empty">Caricamento...</div>';
   try {
     var res = await fetch(SCRIPT_URL + '?action=list&_dc=' + Date.now());
     var d = await res.json();
-    if(!d.ok) throw new Error(d.error);
+    if (!d.ok) throw new Error(d.error);
     tuttiRapportini = d.rapportini || [];
-
-    // Raggruppa per commessa
     commesseMap = {};
-    tuttiRapportini.forEach(function(r){
-      var key = r.commessa || '(senza commessa)';
-      if(!commesseMap[key]){
-        commesseMap[key] = {
-          commessa: key,
-          cliente: r.cliente || '',
-          rapportini: [],
-          operai: {},
-          totLav: 0, totViag: 0, totStr: 0
-        };
+    tuttiRapportini.forEach(function(r) {
+      var key = (r.commessa || '').trim() || '(senza commessa)';
+      if (!commesseMap[key]) {
+        commesseMap[key] = { commessa: key, cliente: r.cliente || '', rapportini: [], totLav: 0, totStr: 0, totViag: 0 };
       }
       commesseMap[key].rapportini.push(r);
-      commesseMap[key].totLav += r.totLav || 0;
+      commesseMap[key].totLav  += r.totLav  || 0;
+      commesseMap[key].totStr  += r.totStr  || 0;
       commesseMap[key].totViag += r.totViag || 0;
-      commesseMap[key].totStr += r.totStr || 0;
     });
     filtraCommesse();
-  } catch(e){
-    el('lista-commesse').innerHTML = '<div class="empty">Errore: ' + e.message + '</div>';
+  } catch(e) {
+    el('lista-commesse').innerHTML = '<div class="empty">Errore: ' + esc(e.message) + '</div>';
   }
 }
 
-function filtraCommesse(){
+function filtraCommesse() {
   var q = (el('search-commessa').value || '').toLowerCase().trim();
-  var lista = Object.values(commesseMap).filter(function(c){
-    if(!q) return true;
-    return (c.commessa + ' ' + c.cliente).toLowerCase().includes(q);
-  }).sort(function(a,b){ return a.commessa.localeCompare(b.commessa); });
+  var lista = Object.values(commesseMap).filter(function(c) {
+    if (!q) return true;
+    return (c.commessa + ' ' + c.cliente).toLowerCase().indexOf(q) >= 0;
+  }).sort(function(a, b) { return a.commessa.localeCompare(b.commessa); });
 
-  if(!lista.length){
+  if (!lista.length) {
     el('lista-commesse').innerHTML = '<div class="empty">Nessuna commessa trovata</div>';
     return;
   }
-  el('lista-commesse').innerHTML = lista.map(function(c){
-    return '<div class="commessa-item" onclick="selezionaCommessa(\''+esc(c.commessa)+'\')">'+
-      '<div class="commessa-code">'+esc(c.commessa)+'</div>'+
-      '<div class="commessa-info">'+esc(c.cliente)+'<br><span>'+c.rapportini.length+' rapportini &middot; '+fmt(c.totLav)+'h lav. &middot; '+fmt(c.totStr)+'h str. &middot; '+fmt(c.totViag)+'h viag.</span></div>'+
-      '<div class="badge">'+c.rapportini.length+'</div>'+
+  el('lista-commesse').innerHTML = lista.map(function(c) {
+    return '<div class="commessa-item" onclick="selezionaCommessa(' + "'" + esc(c.commessa) + "'" + ')">' +
+      '<div class="commessa-code">' + esc(c.commessa) + '</div>' +
+      '<div class="commessa-info">' + esc(c.cliente) + '<br><small>' +
+        c.rapportini.length + ' rapportini &middot; ' +
+        fmt(c.totLav) + 'h lav. &middot; ' +
+        fmt(c.totStr) + 'h str. &middot; ' +
+        fmt(c.totViag) + 'h viag.' +
+      '</small></div>' +
+      '<div class="badge">' + c.rapportini.length + '</div>' +
     '</div>';
   }).join('');
 }
 
-function esc(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]}); }
+async function selezionaCommessa(commessa) {
+  commessaCorrente = commesseMap[commessa];
+  if (!commessaCorrente) return;
 
-function selezionaCommessa(commessa){
-  commessaSelezionata = commesseMap[commessa];
-  if(!commessaSelezionata) return;
-
-  // Carica dettaglio rapportini per avere gli operai completi
-  el('tabella-tariffe').innerHTML = '<div class="empty">Caricamento operai...</div>';
   el('step1').style.display = 'none';
   el('step2').style.display = 'block';
   el('step3').style.display = 'none';
+  el('tabella-tariffe').innerHTML = '<div class="empty">Caricamento operai...</div>';
 
-  var fileIds = commessaSelezionata.rapportini.map(function(r){ return r.fileId; }).filter(Boolean);
-  var dettagli = [];
+  el('info-commessa').innerHTML =
+    '<div class="info-box">' +
+    '<div class="info-box-item"><div class="lbl">Commessa</div><div class="val">' + esc(commessa) + '</div></div>' +
+    '<div class="info-box-item"><div class="lbl">Cliente</div><div class="val">' + esc(commessaCorrente.cliente) + '</div></div>' +
+    '<div class="info-box-item"><div class="lbl">Rapportini</div><div class="val">' + commessaCorrente.rapportini.length + '</div></div>' +
+    '<div class="info-box-item"><div class="lbl">Ore totali</div><div class="val">' + fmt(commessaCorrente.totLav) + 'h lav. / ' + fmt(commessaCorrente.totStr) + 'h str. / ' + fmt(commessaCorrente.totViag) + 'h viag.</div></div>' +
+    '</div>';
+
+  // Carica dettaglio di ogni rapportino per avere gli operai
+  var fileIds = commessaCorrente.rapportini.map(function(r) { return r.fileId; }).filter(Boolean);
+  var operaiMap = {};
   var loaded = 0;
+  var total = fileIds.length;
 
-  if(!fileIds.length){
-    commessaSelezionata.operaiMap = {};
-    renderTariffe({});
+  if (total === 0) {
+    renderTariffe(operaiMap);
     return;
   }
 
-  fileIds.forEach(function(fileId){
+  fileIds.forEach(function(fileId) {
     fetch(SCRIPT_URL + '?action=get&fileId=' + encodeURIComponent(fileId) + '&_dc=' + Date.now())
-      .then(function(r){ return r.json(); })
-      .then(function(d){
-        if(d.ok && d.rapportino) dettagli.push(d.rapportino);
-        loaded++;
-        if(loaded === fileIds.length){
-          // Raccogli operai
-          var operaiMap = {};
-          dettagli.forEach(function(r){
-            (r.operai || []).forEach(function(o){
-              var nome = (o.nome || '').trim().toUpperCase();
-              if(!nome) return;
-              if(!operaiMap[nome]) operaiMap[nome] = { nome: nome, oreLav: 0, oreViag: 0, oreStr: 0 };
-              operaiMap[nome].oreLav  += parseFloat(o.oreLav)  || 0;
-              operaiMap[nome].oreViag += parseFloat(o.oreViag) || 0;
-              operaiMap[nome].oreStr  += parseFloat(o.oreStr)  || 0;
-            });
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.ok && d.rapportino) {
+          var r = d.rapportino;
+          (r.operai || []).forEach(function(o) {
+            var nome = (o.nome || '').trim().toUpperCase();
+            if (!nome) return;
+            if (!operaiMap[nome]) operaiMap[nome] = { nome: nome, oreLav: 0, oreStr: 0, oreViag: 0 };
+            operaiMap[nome].oreLav  += parseFloat(o.oreLav)  || 0;
+            operaiMap[nome].oreStr  += parseFloat(o.oreStr)  || 0;
+            operaiMap[nome].oreViag += parseFloat(o.oreViag) || 0;
           });
-          commessaSelezionata.operaiMap = operaiMap;
+        }
+      })
+      .catch(function() {})
+      .finally(function() {
+        loaded++;
+        if (loaded === total) {
+          commessaCorrente.operaiMap = operaiMap;
           renderTariffe(operaiMap);
         }
-      }).catch(function(){
-        loaded++;
-        if(loaded === fileIds.length) renderTariffe(commessaSelezionata.operaiMap || {});
       });
   });
+}
 
-  // Mostra info commessa
-  el('commessa-sel-info').innerHTML =
-    '<div style="display:flex;gap:16px;flex-wrap:wrap;padding:12px 16px;background:var(--surface2);border-radius:6px;margin-bottom:16px">' +
-    '<div><div style="font-size:10px;font-family:var(--mono);text-transform:uppercase;color:var(--text3)">Commessa</div><div style="font-weight:600">' + esc(commessa) + '</div></div>' +
-    '<div><div style="font-size:10px;font-family:var(--mono);text-transform:uppercase;color:var(--text3)">Cliente</div><div>' + esc(commessaSelezionata.cliente) + '</div></div>' +
-    '<div><div style="font-size:10px;font-family:var(--mono);text-transform:uppercase;color:var(--text3)">Rapportini</div><div>' + commessaSelezionata.rapportini.length + '</div></div>' +
-    '</div>';
-
-
-function renderTariffe(operaiMap){
+function renderTariffe(operaiMap) {
   var operai = Object.values(operaiMap || {});
-  if(!operai.length){
+  if (!operai.length) {
     el('tabella-tariffe').innerHTML = '<div class="empty">Nessun operaio trovato nei rapportini di questa commessa</div>';
     return;
   }
-  var rows = operai.map(function(o, idx){
-    var t = tarifffeSalvate[o.nome] || {};
+  var rows = operai.map(function(o, i) {
+    var t = tariffe[o.nome] || {};
     return '<tr>' +
-      '<td style="font-weight:500">' + esc(o.nome) + '</td>' +
+      '<td style="font-weight:600">' + esc(o.nome) + '</td>' +
       '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreLav) + 'h</td>' +
       '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreStr) + 'h</td>' +
       '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreViag) + 'h</td>' +
-      '<td><input type="number" class="tar-lav" data-idx="' + idx + '" data-nome="' + esc(o.nome) + '" value="' + (t.lav || '') + '" placeholder="0.00" min="0" step="0.5"></td>' +
-      '<td><input type="number" class="tar-str" data-idx="' + idx + '" data-nome="' + esc(o.nome) + '" value="' + (t.str || '') + '" placeholder="0.00" min="0" step="0.5"></td>' +
-      '<td><input type="number" class="tar-viag" data-idx="' + idx + '" data-nome="' + esc(o.nome) + '" value="' + (t.viag || '') + '" placeholder="0.00" min="0" step="0.5"></td>' +
+      '<td><input type="number" class="t-lav" data-nome="' + esc(o.nome) + '" value="' + (t.lav || '') + '" placeholder="0,00" min="0" step="0.5"></td>' +
+      '<td><input type="number" class="t-str" data-nome="' + esc(o.nome) + '" value="' + (t.str || '') + '" placeholder="0,00" min="0" step="0.5"></td>' +
+      '<td><input type="number" class="t-viag" data-nome="' + esc(o.nome) + '" value="' + (t.viag || '') + '" placeholder="0,00" min="0" step="0.5"></td>' +
     '</tr>';
   }).join('');
+
   el('tabella-tariffe').innerHTML =
     '<table><thead><tr>' +
     '<th>Operaio</th>' +
     '<th style="text-align:right">Ore ord.</th>' +
     '<th style="text-align:right">Ore str.</th>' +
     '<th style="text-align:right">Ore viag.</th>' +
-    '<th>€/h ordinario</th>' +
-    '<th>€/h straord.</th>' +
-    '<th>€/h viaggio</th>' +
+    '<th>&#8364;/h ordinario</th>' +
+    '<th>&#8364;/h straord.</th>' +
+    '<th>&#8364;/h viaggio</th>' +
     '</tr></thead><tbody>' + rows + '</tbody></table>';
 }
 
-function calcolaCosti(){
-  if(!commessaSelezionata) return;
-  var operai = Object.values(commessaSelezionata.operaiMap);
-  var righe = '';
-  var totCostoLav = 0, totCostoStr = 0, totCostoViag = 0, totOreLav = 0, totOreStr = 0, totOreViag = 0;
+function getTariffa(cls, nome) {
+  var inputs = document.querySelectorAll('.' + cls);
+  for (var i = 0; i < inputs.length; i++) {
+    if (inputs[i].dataset.nome === nome) return parseFloat(inputs[i].value) || 0;
+  }
+  return 0;
+}
 
-  operai.forEach(function(o){
-    salvaTariffa(o.nome);
-    var tLav  = getTariffaVal('tar-lav', o.nome);
-    var tStr  = getTariffaVal('tar-str', o.nome);
-    var tViag = getTariffaVal('tar-viag', o.nome);
+function calcolaCosti() {
+  if (!commessaCorrente || !commessaCorrente.operaiMap) return;
+  var operai = Object.values(commessaCorrente.operaiMap);
+  if (!operai.length) { showAlert('Nessun operaio da calcolare.'); return; }
+
+  var righe = '';
+  var totCLav = 0, totCStr = 0, totCViag = 0;
+  var totOLav = 0, totOStr = 0, totOViag = 0;
+
+  operai.forEach(function(o) {
+    var tLav  = getTariffa('t-lav', o.nome);
+    var tStr  = getTariffa('t-str', o.nome);
+    var tViag = getTariffa('t-viag', o.nome);
+    // Salva tariffe
+    tariffe[o.nome] = { lav: tLav, str: tStr, viag: tViag };
+
     var cLav  = o.oreLav  * tLav;
     var cStr  = o.oreStr  * tStr;
     var cViag = o.oreViag * tViag;
-    var totOp = cLav + cStr + cViag;
-    totCostoLav  += cLav;
-    totCostoStr  += cStr;
-    totCostoViag += cViag;
-    totOreLav  += o.oreLav;
-    totOreStr  += o.oreStr;
-    totOreViag += o.oreViag;
-    righe += '<tr>'+
-      '<td style="font-weight:500">'+esc(o.nome)+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono)">'+fmt(o.oreLav)+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono)">'+fmtEur(tLav)+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono);color:var(--green)">'+fmtEur(cLav)+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono)">'+fmt(o.oreStr)+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono)">'+fmtEur(tStr)+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono);color:var(--amber)">'+fmtEur(cStr)+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono)">'+fmt(o.oreViag)+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono)">'+fmtEur(tViag)+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono);color:var(--blue)">'+fmtEur(cViag)+'</td>'+
-      '<td style="text-align:right;font-family:var(--mono);font-weight:600;color:var(--red)">'+fmtEur(totOp)+'</td>'+
+    var tot   = cLav + cStr + cViag;
+
+    totCLav  += cLav;  totCStr  += cStr;  totCViag += cViag;
+    totOLav  += o.oreLav; totOStr += o.oreStr; totOViag += o.oreViag;
+
+    righe += '<tr>' +
+      '<td style="font-weight:600">' + esc(o.nome) + '</td>' +
+      '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreLav) + '</td>' +
+      '<td style="text-align:right;font-family:var(--mono);color:var(--text2)">' + fmtEur(tLav) + '</td>' +
+      '<td style="text-align:right;font-family:var(--mono);color:var(--green)">' + fmtEur(cLav) + '</td>' +
+      '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreStr) + '</td>' +
+      '<td style="text-align:right;font-family:var(--mono);color:var(--text2)">' + fmtEur(tStr) + '</td>' +
+      '<td style="text-align:right;font-family:var(--mono);color:var(--amber)">' + fmtEur(cStr) + '</td>' +
+      '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreViag) + '</td>' +
+      '<td style="text-align:right;font-family:var(--mono);color:var(--text2)">' + fmtEur(tViag) + '</td>' +
+      '<td style="text-align:right;font-family:var(--mono);color:var(--blue)">' + fmtEur(cViag) + '</td>' +
+      '<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--red)">' + fmtEur(tot) + '</td>' +
     '</tr>';
   });
 
-  // Riga totali
-  var totTot = totCostoLav + totCostoStr + totCostoViag;
-  righe += '<tr style="background:var(--surface2);font-weight:600">'+
-    '<td>TOTALE</td>'+
-    '<td style="text-align:right;font-family:var(--mono)">'+fmt(totOreLav)+'</td>'+
-    '<td></td>'+
-    '<td style="text-align:right;font-family:var(--mono);color:var(--green)">'+fmtEur(totCostoLav)+'</td>'+
-    '<td style="text-align:right;font-family:var(--mono)">'+fmt(totOreStr)+'</td>'+
-    '<td></td>'+
-    '<td style="text-align:right;font-family:var(--mono);color:var(--amber)">'+fmtEur(totCostoStr)+'</td>'+
-    '<td style="text-align:right;font-family:var(--mono)">'+fmt(totOreViag)+'</td>'+
-    '<td></td>'+
-    '<td style="text-align:right;font-family:var(--mono);color:var(--blue)">'+fmtEur(totCostoViag)+'</td>'+
-    '<td style="text-align:right;font-family:var(--mono);color:var(--red);font-size:15px">'+fmtEur(totTot)+'</td>'+
+  var totTot = totCLav + totCStr + totCViag;
+  righe += '<tr style="background:var(--surface2)">' +
+    '<td style="font-weight:700">TOTALE</td>' +
+    '<td style="text-align:right;font-family:var(--mono);font-weight:600">' + fmt(totOLav) + '</td>' +
+    '<td></td>' +
+    '<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--green)">' + fmtEur(totCLav) + '</td>' +
+    '<td style="text-align:right;font-family:var(--mono);font-weight:600">' + fmt(totOStr) + '</td>' +
+    '<td></td>' +
+    '<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--amber)">' + fmtEur(totCStr) + '</td>' +
+    '<td style="text-align:right;font-family:var(--mono);font-weight:600">' + fmt(totOViag) + '</td>' +
+    '<td></td>' +
+    '<td style="text-align:right;font-family:var(--mono);font-weight:700;color:var(--blue)">' + fmtEur(totCViag) + '</td>' +
+    '<td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:15px;color:var(--red)">' + fmtEur(totTot) + '</td>' +
   '</tr>';
 
   el('tbody-risultato').innerHTML = righe;
-
-  // Barra totali
   el('tot-bar').innerHTML =
-    '<div class="tot-item"><div class="tot-label">Costo ordinario</div><div class="tot-val green">'+fmtEur(totCostoLav)+'</div></div>'+
-    '<div class="tot-item"><div class="tot-label">Costo straordinario</div><div class="tot-val amber">'+fmtEur(totCostoStr)+'</div></div>'+
-    '<div class="tot-item"><div class="tot-label">Costo viaggio</div><div class="tot-val blue">'+fmtEur(totCostoViag)+'</div></div>'+
-    '<div class="tot-item" style="margin-left:auto"><div class="tot-label">Totale manodopera</div><div class="tot-val big red">'+fmtEur(totTot)+'</div></div>';
+    '<div class="tot-item"><div class="tot-label">Costo ordinario</div><div class="tot-val green">' + fmtEur(totCLav) + '</div></div>' +
+    '<div class="tot-item"><div class="tot-label">Costo straordinario</div><div class="tot-val amber">' + fmtEur(totCStr) + '</div></div>' +
+    '<div class="tot-item"><div class="tot-label">Costo viaggio</div><div class="tot-val blue">' + fmtEur(totCViag) + '</div></div>' +
+    '<div class="tot-item" style="margin-left:auto"><div class="tot-label">Totale manodopera</div><div class="tot-val big red">' + fmtEur(totTot) + '</div></div>';
 
+  try { localStorage.setItem('tariffe_v1', JSON.stringify(tariffe)); } catch(e) {}
   el('step3').style.display = 'block';
   el('step3').scrollIntoView({ behavior: 'smooth' });
 }
 
-function resetSelezione(){
-  commessaSelezionata = null;
+function resetSelezione() {
+  commessaCorrente = null;
   el('step1').style.display = 'block';
   el('step2').style.display = 'none';
   el('step3').style.display = 'none';
 }
 
-// Avvio
 caricaCommesse();
 </script>
 </body>
