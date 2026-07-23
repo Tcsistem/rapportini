@@ -46,7 +46,14 @@ tr:last-child td{border-bottom:none}
 .info-box{display:flex;gap:20px;flex-wrap:wrap;padding:14px 16px;background:var(--surface2);border-radius:6px;margin-bottom:16px}
 .info-box-item .lbl{font-size:10px;font-family:var(--mono);text-transform:uppercase;color:var(--text3)}
 .info-box-item .val{font-size:14px;font-weight:600;margin-top:2px}
-@media print{.no-print{display:none!important}body{background:#fff}.card{border:1px solid #ccc}}
+@media print{
+  .no-print{display:none!important}
+  body{background:#fff}
+  #step1,#step2{display:none!important}
+  #tot-bar{display:flex!important;border:1px solid #ccc;margin-bottom:12px}
+  .card{border:1px solid #ccc;box-shadow:none}
+  .topbar{position:static;border-bottom:1px solid #ccc}
+}
 </style>
 </head>
 <body>
