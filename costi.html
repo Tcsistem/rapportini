@@ -195,19 +195,49 @@ function selezionaCommessa(commessa){
   commessaSelezionata = commesseMap[commessa];
   if(!commessaSelezionata) return;
 
-  // Raccogli operai unici con ore totali
-  var operaiMap = {};
-  commessaSelezionata.rapportini.forEach(function(r){
-    (r.operai || []).forEach(function(o){
-      var nome = (o.nome || '').trim().toUpperCase();
-      if(!nome) return;
-      if(!operaiMap[nome]) operaiMap[nome] = { nome: nome, oreLav: 0, oreViag: 0, oreStr: 0 };
-      operaiMap[nome].oreLav  += parseFloat(o.oreLav)  || 0;
-      operaiMap[nome].oreViag += parseFloat(o.oreViag) || 0;
-      operaiMap[nome].oreStr  += parseFloat(o.oreStr)  || 0;
-    });
+  // Carica dettaglio rapportini per avere gli operai completi
+  el('tabella-tariffe').innerHTML = '<div class="empty">Caricamento operai...</div>';
+  el('step1').style.display = 'none';
+  el('step2').style.display = 'block';
+  el('step3').style.display = 'none';
+
+  var fileIds = commessaSelezionata.rapportini.map(function(r){ return r.fileId; }).filter(Boolean);
+  var dettagli = [];
+  var loaded = 0;
+
+  if(!fileIds.length){
+    commessaSelezionata.operaiMap = {};
+    renderTariffe({});
+    return;
+  }
+
+  fileIds.forEach(function(fileId){
+    fetch(SCRIPT_URL + '?action=get&fileId=' + encodeURIComponent(fileId) + '&_dc=' + Date.now())
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if(d.ok && d.rapportino) dettagli.push(d.rapportino);
+        loaded++;
+        if(loaded === fileIds.length){
+          // Raccogli operai
+          var operaiMap = {};
+          dettagli.forEach(function(r){
+            (r.operai || []).forEach(function(o){
+              var nome = (o.nome || '').trim().toUpperCase();
+              if(!nome) return;
+              if(!operaiMap[nome]) operaiMap[nome] = { nome: nome, oreLav: 0, oreViag: 0, oreStr: 0 };
+              operaiMap[nome].oreLav  += parseFloat(o.oreLav)  || 0;
+              operaiMap[nome].oreViag += parseFloat(o.oreViag) || 0;
+              operaiMap[nome].oreStr  += parseFloat(o.oreStr)  || 0;
+            });
+          });
+          commessaSelezionata.operaiMap = operaiMap;
+          renderTariffe(operaiMap);
+        }
+      }).catch(function(){
+        loaded++;
+        if(loaded === fileIds.length) renderTariffe(commessaSelezionata.operaiMap || {});
+      });
   });
-  commessaSelezionata.operaiMap = operaiMap;
 
   // Mostra info commessa
   el('commessa-sel-info').innerHTML =
@@ -217,40 +247,36 @@ function selezionaCommessa(commessa){
     '<div><div style="font-size:10px;font-family:var(--mono);text-transform:uppercase;color:var(--text3)">Rapportini</div><div>' + commessaSelezionata.rapportini.length + '</div></div>' +
     '</div>';
 
-  // Tabella tariffe
-  var operai = Object.values(operaiMap);
+
+function renderTariffe(operaiMap){
+  var operai = Object.values(operaiMap || {});
   if(!operai.length){
     el('tabella-tariffe').innerHTML = '<div class="empty">Nessun operaio trovato nei rapportini di questa commessa</div>';
-  } else {
-    var rows = operai.map(function(o, idx){
-      var t = tarifffeSalvate[o.nome] || {};
-      return '<tr>' +
-        '<td style="font-weight:500">' + esc(o.nome) + '</td>' +
-        '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreLav) + 'h</td>' +
-        '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreStr) + 'h</td>' +
-        '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreViag) + 'h</td>' +
-        '<td><input type="number" class="tar-lav" data-idx="' + idx + '" data-nome="' + esc(o.nome) + '" value="' + (t.lav || '') + '" placeholder="0.00" min="0" step="0.5"></td>' +
-        '<td><input type="number" class="tar-str" data-idx="' + idx + '" data-nome="' + esc(o.nome) + '" value="' + (t.str || '') + '" placeholder="0.00" min="0" step="0.5"></td>' +
-        '<td><input type="number" class="tar-viag" data-idx="' + idx + '" data-nome="' + esc(o.nome) + '" value="' + (t.viag || '') + '" placeholder="0.00" min="0" step="0.5"></td>' +
-      '</tr>';
-    }).join('');
-    el('tabella-tariffe').innerHTML =
-      '<table><thead><tr>' +
-      '<th>Operaio</th>' +
-      '<th style="text-align:right">Ore ord.</th>' +
-      '<th style="text-align:right">Ore str.</th>' +
-      '<th style="text-align:right">Ore viag.</th>' +
-      '<th>€/h ordinario</th>' +
-      '<th>€/h straord.</th>' +
-      '<th>€/h viaggio</th>' +
-      '</tr></thead><tbody>' + rows + '</tbody></table>';
+    return;
   }
-
-  el('step1').style.display = 'none';
-  el('step2').style.display = 'block';
-  el('step3').style.display = 'none';
+  var rows = operai.map(function(o, idx){
+    var t = tarifffeSalvate[o.nome] || {};
+    return '<tr>' +
+      '<td style="font-weight:500">' + esc(o.nome) + '</td>' +
+      '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreLav) + 'h</td>' +
+      '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreStr) + 'h</td>' +
+      '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreViag) + 'h</td>' +
+      '<td><input type="number" class="tar-lav" data-idx="' + idx + '" data-nome="' + esc(o.nome) + '" value="' + (t.lav || '') + '" placeholder="0.00" min="0" step="0.5"></td>' +
+      '<td><input type="number" class="tar-str" data-idx="' + idx + '" data-nome="' + esc(o.nome) + '" value="' + (t.str || '') + '" placeholder="0.00" min="0" step="0.5"></td>' +
+      '<td><input type="number" class="tar-viag" data-idx="' + idx + '" data-nome="' + esc(o.nome) + '" value="' + (t.viag || '') + '" placeholder="0.00" min="0" step="0.5"></td>' +
+    '</tr>';
+  }).join('');
+  el('tabella-tariffe').innerHTML =
+    '<table><thead><tr>' +
+    '<th>Operaio</th>' +
+    '<th style="text-align:right">Ore ord.</th>' +
+    '<th style="text-align:right">Ore str.</th>' +
+    '<th style="text-align:right">Ore viag.</th>' +
+    '<th>€/h ordinario</th>' +
+    '<th>€/h straord.</th>' +
+    '<th>€/h viaggio</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table>';
 }
-
 
 function calcolaCosti(){
   if(!commessaSelezionata) return;
