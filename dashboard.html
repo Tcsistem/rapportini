@@ -283,6 +283,9 @@ function el(id){return document.getElementById(id)}
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function fmt(n){n=Number(n)||0;return n%1===0?n:n.toFixed(1)}
 function fmtData(d){return d?new Date(d+'T00:00:00').toLocaleDateString('it-IT'):'—'}
+function fN(n){n=Number(n)||0;return n%1===0?n:n.toFixed(1)}
+function wKey(d){if(!d)return '(senza data)';var dt=new Date(d+'T00:00:00');var day=dt.getDay();var mon=new Date(dt);mon.setDate(dt.getDate()-(day===0?6:day-1));var sun=new Date(mon);sun.setDate(mon.getDate()+6);var fmt=function(x){return x.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'})};return fmt(mon)+' – '+fmt(sun);}
+function wSort(d){if(!d)return '';var dt=new Date(d+'T00:00:00');var day=dt.getDay();var mon=new Date(dt);mon.setDate(dt.getDate()-(day===0?6:day-1));return mon.toISOString().split('T')[0];}
 var _at;
 function showAlert(msg,type){var a=el('alert');a.className='alert alert-'+type+' show';a.textContent=msg;clearTimeout(_at);_at=setTimeout(function(){a.classList.remove('show')},5000)}
 function avviaAutoRefresh(){if(refreshTimer)clearInterval(refreshTimer);if(countdownTimer)clearInterval(countdownTimer);secondiRimasti=REFRESH_MIN*60;aggiornaCountdown();countdownTimer=setInterval(function(){secondiRimasti--;if(secondiRimasti<0)secondiRimasti=REFRESH_MIN*60;aggiornaCountdown()},1000);refreshTimer=setInterval(function(){secondiRimasti=REFRESH_MIN*60;caricaDati()},REFRESH_MIN*60*1000);}
