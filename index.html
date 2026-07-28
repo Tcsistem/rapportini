@@ -1376,18 +1376,6 @@ function esportaCsv(r){
   a.download=(r.numero||'rapportino')+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
-// ── INIT ─────────────────────────────────────────────
-async function init(){
-  setToday();
-  loadDB();
-  updateCnt();
-  renderLista();
-  renderSync();
-  await caricaConfig();
-  await autoNum();
-  testConn();
-}
-init();
 </script>
 
 <!-- TOAST CENTRATO MOBILE -->
