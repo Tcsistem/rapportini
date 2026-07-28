@@ -977,11 +977,11 @@ function renderOp(){
   el('op-body').innerHTML=operai.map(function(o){
     return '<tr>'+
     '<td class="tc-desc"><input type="text" value="'+esc(o.nome)+'" onchange="syncOpNome('+o.id+',this.value)"></td>'+
-    '<td class="tc-sm"><input type="number" value="'+(o.oreLav||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',\"oreLav\",this.value)" placeholder="0"></td>'+
-    '<td class="tc-sm"><input type="number" value="'+(o.oreStr||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',\"oreStr\",this.value)" placeholder="0"></td>'+
-    '<td class="tc-sm"><input type="number" value="'+(o.oreSab||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',\"oreSab\",this.value)" placeholder="0"></td>'+
-    '<td class="tc-sm"><input type="number" value="'+(o.oreFest||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',\"oreFest\",this.value)" placeholder="0"></td>'+
-    '<td class="tc-sm"><input type="number" value="'+(o.oreViag||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',\"oreViag\",this.value)" placeholder="0"></td>'+
+    '<td class="tc-sm"><input type="number" value="'+(o.oreLav||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',&quot;oreLav&quot;,this.value)" placeholder="0"></td>'+
+    '<td class="tc-sm"><input type="number" value="'+(o.oreStr||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',&quot;oreStr&quot;,this.value)" placeholder="0"></td>'+
+    '<td class="tc-sm"><input type="number" value="'+(o.oreSab||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',&quot;oreSab&quot;,this.value)" placeholder="0"></td>'+
+    '<td class="tc-sm"><input type="number" value="'+(o.oreFest||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',&quot;oreFest&quot;,this.value)" placeholder="0"></td>'+
+    '<td class="tc-sm"><input type="number" value="'+(o.oreViag||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',&quot;oreViag&quot;,this.value)" placeholder="0"></td>'+
     '<td class="tc-xs"><button class="btn-icon rm" onclick="rmOp('+o.id+')">✕</button></td>'+
     '</tr>';
   }).join('');
