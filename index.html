@@ -987,3 +987,414 @@ function renderOp(){
   }).join('');
   aggTot();
 }
+
+// ── FORM ──────────────────────────────────────────────
+function getForm(){
+  var totLav=operai.reduce(function(s,o){return s+(o.oreLav||0)},0);
+  var totStr=operai.reduce(function(s,o){return s+(o.oreStr||0)},0);
+  var totSab=operai.reduce(function(s,o){return s+(o.oreSab||0)},0);
+  var totFest=operai.reduce(function(s,o){return s+(o.oreFest||0)},0);
+  var totViag=operai.reduce(function(s,o){return s+(o.oreViag||0)},0);
+  var driveFileId='';
+  if(editId){var existing=rapportini.find(function(x){return x.id===editId});if(existing)driveFileId=existing.driveFileId||'';}
+  return{id:editId||Date.now(),numero:v('f-num'),data:v('f-data'),
+    cliente:v('f-cliente'),commessa:v('f-commessa'),indirizzo:v('f-indirizzo'),
+    tecnico:(v('f-tecnico')||'').toUpperCase().trim(),tipo:v('f-tipo'),stato:v('f-stato'),
+    descrizione:v('f-desc'),note:v('f-note'),
+    materiali:materiali.slice(),operai:operai.slice(),totLav:totLav,totStr:totStr,totSab:totSab,totFest:totFest,totViag:totViag,
+    azienda:cfg.azienda,piva:cfg.piva,tel:cfg.tel,email:cfg.email,logo:cfg.logo||'',
+    driveFileId:driveFileId,syncedNas:false,createdAt:new Date().toISOString()};
+}
+function resetForm(){
+  editId=null;
+  ['f-num','f-cliente','f-commessa','f-indirizzo','f-tecnico','f-desc','f-note'].forEach(function(id){var e=el(id);if(e)e.value=''});
+  el('f-tipo').value='';el('f-stato').value='0';el('f-data').value='';
+  materiali=[];operai=[];firmaCorrente={tecnico:null,cliente:null};
+  renderMat();renderOp();setToday();autoNum();window.scrollTo(0,0);
+}
+function validaBase(){
+  if(!v('f-commessa')){showAlert('N. Commessa obbligatorio.','err');el('f-commessa').focus();return false}
+  if(!v('f-tecnico')){showAlert('Tecnico responsabile obbligatorio.','err');el('f-tecnico').focus();return false}
+  return true;
+}
+function valida(){
+  if(!validaBase())return false;
+  if(!operai.length){showAlert('Aggiungi almeno un operaio.','err');return false}
+  for(var i=0;i<operai.length;i++){
+    var o=operai[i];
+    if(!o.nome||!o.nome.trim()){showAlert('Nome operaio obbligatorio.','err');return false}
+    var totOre=(o.oreLav||0)+(o.oreStr||0)+(o.oreSab||0)+(o.oreFest||0);
+    if(totOre<=0){showAlert('Inserire almeno un tipo di ore per '+o.nome+'.','err');return false}
+  }
+  return true;
+}
+function upsert(r){var i=rapportini.findIndex(function(x){return x.id===r.id});if(i>=0)rapportini[i]=r;else rapportini.unshift(r)}
+function saveDB(){localStorage.setItem(K_DAT,JSON.stringify(rapportini))}
+function salvaMats(){
+  materiali.forEach(function(m){var d=m.desc.trim();if(d&&!materialiDB.includes(d))materialiDB.push(d)});
+  materialiDB.sort(function(a,b){return a.localeCompare(b,'it')});
+  localStorage.setItem(K_MATS,JSON.stringify(materialiDB));
+}
+function salvaLocale(){
+  if(!valida())return;
+  var r=getForm();salvaMats();upsert(r);saveDB();updateCnt();editId=r.id;
+  showAlert('Salvato come bozza.','ok');
+}
+
+// ── LISTA BOZZE ───────────────────────────────────────
+function renderLista(){
+  var w=el('lista-wrap');
+  if(!rapportini.length){w.innerHTML='<div class="empty">Nessuna bozza salvata.</div>';return}
+  w.innerHTML=rapportini.map(function(r){
+    var df=r.data?new Date(r.data+'T00:00:00').toLocaleDateString('it-IT'):'—';
+    var pct=parseInt(r.stato)||0;
+    var stB=pct===100?'<span class="badge b-ok">Completato</span>':'<span class="badge b-bozza">'+pct+'%</span>';
+    var sB=r.syncedNas?'<span class="badge b-sync">Drive ✓</span>':'';
+    var fB=r.firmato?'<span class="badge b-ok">✍ Firmato</span>':'';
+    return'<div class="rap-card" onclick="caricaRap('+r.id+')">'+
+      '<div class="rap-info"><h3>'+esc(r.cliente||'(nessun cliente)')+stB+sB+fB+'</h3>'+
+      '<p>'+esc(r.tipo||'—')+' · '+df+' · '+esc(r.commessa||'—')+' · '+esc(r.tecnico||'—')+'</p></div>'+
+      '<div class="rap-meta"><span class="tot">'+fmt(r.totLav||0)+'h</span><span class="num">N. '+esc(r.numero)+'</span></div>'+
+    '</div>';
+  }).join('');
+}
+function caricaRap(id){
+  var r=rapportini.find(function(x){return x.id===id});if(!r)return;
+  editId=r.id;
+  el('f-num').value=r.numero;el('f-data').value=r.data;
+  el('f-cliente').value=r.cliente;el('f-commessa').value=r.commessa||'';
+  el('f-indirizzo').value=r.indirizzo;el('f-tecnico').value=r.tecnico||'';
+  el('f-tipo').value=r.tipo;el('f-stato').value=r.stato;
+  el('f-desc').value=r.descrizione;el('f-note').value=r.note;
+  materiali=(r.materiali||[]).map(function(m){return Object.assign({},m)});
+  operai=(r.operai||[]).map(function(o){return Object.assign({},o)});
+  firmaCorrente=r.firme?{tecnico:r.firme.tecnico||null,cliente:r.firme.cliente||null}:{tecnico:null,cliente:null};
+  renderMat();renderOp();showTab('nuovo');window.scrollTo(0,0);
+}
+
+// ── ANTEPRIMA ─────────────────────────────────────────
+function mostraAnteprima(){
+  if(!validaBase())return;
+  var r=getForm();
+  var df=r.data?new Date(r.data+'T00:00:00').toLocaleDateString('it-IT'):'—';
+  var rM=r.materiali.map(function(m){return'<tr><td>'+esc(m.desc)+'</td><td style="text-align:center">'+esc(m.qty)+'</td><td style="text-align:center">'+esc(m.unit)+'</td></tr>'}).join('');
+  var rO=r.operai.map(function(o){return'<tr><td>'+esc(o.nome)+'</td><td style="text-align:center">'+fmt(o.oreLav||0)+'</td><td style="text-align:center">'+fmt(o.oreStr||0)+'</td><td style="text-align:center">'+fmt(o.oreSab||0)+'</td><td style="text-align:center">'+fmt(o.oreFest||0)+'</td><td style="text-align:center">'+fmt(o.oreViag||0)+'</td></tr>'}).join('');
+  var logoHtml = r.logo ? '<img src="'+r.logo+'" style="height:60px;max-width:180px;object-fit:contain;display:block;margin-bottom:4px">' : '';
+  var h='<div class="pr-header">'+
+    '<div>'+logoHtml+'<div class="pr-azienda">'+esc(r.azienda||'Azienda')+'</div>'+
+    '<div class="pr-sub">'+esc([r.piva,r.tel,r.email].filter(Boolean).join(' · '))+'</div></div>'+
+    '<div class="pr-meta"><span style="font-size:12px">Rapportino n.</span><strong>'+esc(r.numero||'—')+'</strong>'+
+    '<div style="margin-top:3px;font-size:13px">'+df+'</div></div></div>'+
+    '<div class="pr-grid">'+
+    '<div class="pr-cell">Cliente<strong>'+esc(r.cliente||'—')+'</strong></div>'+
+    '<div class="pr-cell">N. Commessa<strong>'+esc(r.commessa||'—')+'</strong></div>'+
+    '<div class="pr-cell">Indirizzo<strong>'+esc(r.indirizzo||'—')+'</strong></div>'+
+    '<div class="pr-cell">Tecnico<strong>'+esc(r.tecnico||'—')+'</strong></div>'+
+    '<div class="pr-cell">Tipo<strong>'+esc(r.tipo||'—')+'</strong></div>'+
+    '<div class="pr-cell">Avanzamento<strong>'+(parseInt(r.stato)||0)+'%</strong></div>'+
+    '</div>';
+  if(r.descrizione)h+='<div class="pr-note" style="margin-bottom:16px"><strong>Descrizione</strong><p>'+esc(r.descrizione)+'</p></div>';
+  if(r.materiali.length)h+='<div class="pr-section"><div class="pr-section-title">Materiali</div>'+
+    '<table class="pr-table"><thead><tr><th>Materiale</th><th style="text-align:center">Qtà</th><th style="text-align:center">Unità</th></tr></thead>'+
+    '<tbody>'+rM+'</tbody></table></div>';
+  if(r.operai.length)h+='<div class="pr-section"><div class="pr-section-title">Operai e ore</div>'+
+    '<table class="pr-table"><thead><tr><th>Operaio</th><th style="text-align:center">Ord.</th><th style="text-align:center">Str.</th><th style="text-align:center">Sab.</th><th style="text-align:center">Fest.</th><th style="text-align:center">Viag.</th></tr></thead>'+
+    '<tbody>'+rO+'</tbody></table>'+
+    '<div class="pr-tot"><span>Ord: <span class="big">'+fmt(r.totLav)+'h</span></span>'+
+    '<span>Str: <span class="big">'+fmt(r.totStr)+'h</span></span>'+
+    '<span>Sab: <span class="big">'+fmt(r.totSab)+'h</span></span>'+
+    '<span>Fest: <span class="big">'+fmt(r.totFest)+'h</span></span>'+
+    '<span>Viag: <span class="big">'+fmt(r.totViag)+'h</span></span></div></div>';
+  if(r.note)h+='<div class="pr-note"><strong>Note</strong><p>'+esc(r.note)+'</p></div>';
+  var ftImg=firmaCorrente&&firmaCorrente.tecnico?'<img src="'+firmaCorrente.tecnico+'" style="display:block;margin-top:8px;max-width:200px;height:70px;object-fit:contain">':'';
+  var fcImg=firmaCorrente&&firmaCorrente.cliente?'<img src="'+firmaCorrente.cliente+'" style="display:block;margin-top:8px;max-width:200px;height:70px;object-fit:contain">':'';
+  h+='<div class="pr-firme">'+
+    '<div class="pr-firma-box">Firma tecnico'+ftImg+'</div>'+
+    '<div class="pr-firma-box">Firma cliente / Timbro'+fcImg+'</div>'+
+    '</div>';
+  el('ant-wrap').innerHTML=h;
+  el('ant-actions').style.display='flex';
+  showTab('anteprima');
+}
+
+// ── DRIVE ─────────────────────────────────────────────
+async function testConn(){
+  setDot('spin');
+  try{
+    var res=await fetch(SCRIPT_URL+'?action=ping&_dc='+Date.now());
+    var d=await res.json();
+    if(d.ok){setDot('ok');showAlert(d.msg,'ok');var s=el('info-stato');if(s)s.textContent='Connesso'}
+    else{setDot('err');showAlert('Errore: '+(d.error||''),'err')}
+  }catch(e){setDot('err');showAlert('Script non raggiungibile.','err')}
+}
+async function uploadDrive(r){
+  try{
+    var res=await fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(r)});
+    var d=await res.json();
+    if(d.ok){return d.fileId||true}
+    return false;
+  }catch(e){return false}
+}
+async function salvaESinc(){
+  if(!valida())return;
+  var r=getForm();salvaMats();upsert(r);saveDB();updateCnt();editId=r.id;
+  showAlert('Salvato. Invio su Drive...','info');
+  var res=await uploadDrive(r);
+  if(res){r.syncedNas=true;r.syncedAt=new Date().toISOString();if(res!==true)r.driveFileId=res;upsert(r);saveDB();showToastCenter('Rapportino inviato\nsu Google Drive!','✅');resetForm();}
+  else showAlert('Salvato in locale. Errore Drive — riprova dalla scheda Sync.','err');
+}
+function renderSync(){
+  var w=el('sync-list');
+  if(!rapportini.length){w.innerHTML='<div class="empty">Nessun rapportino salvato.</div>';return}
+  w.innerHTML=rapportini.map(function(r){
+    var st=r.syncedNas?'<span style="font-size:12px;color:var(--green)">✓ Drive</span>':'<span style="font-size:12px;color:var(--amber)">Non inviato</span>';
+    return'<div class="sync-item">'+
+      '<div style="flex:1"><div style="font-weight:500">'+esc(r.numero)+' — '+esc(r.cliente||'N/A')+'</div>'+
+      '<div style="font-size:12px;color:var(--text2)">'+(r.data||'—')+' · '+esc(r.tecnico||'—')+'</div></div>'+
+      st+'<button class="btn" style="padding:7px 14px;font-size:13px" onclick="sincUno('+r.id+')">Invia</button>'+
+    '</div>';
+  }).join('');
+}
+async function sincUno(id){
+  var r=rapportini.find(function(x){return x.id===id});if(!r)return;
+  var res=await uploadDrive(r);
+  if(res){r.syncedNas=true;r.syncedAt=new Date().toISOString();if(res!==true)r.driveFileId=res;upsert(r);saveDB();showAlert('Inviato su Drive.','ok');}
+  else showAlert('Errore invio.','err');
+  renderSync();
+}
+async function sincTutti(){
+  var p=rapportini.filter(function(r){return!r.syncedNas});
+  if(!p.length){showAlert('Tutti già sincronizzati.','ok');return}
+  var ok=0,err=0;
+  for(var i=0;i<p.length;i++){
+    var res=await uploadDrive(p[i]);
+    if(res){p[i].syncedNas=true;p[i].syncedAt=new Date().toISOString();if(res!==true)p[i].driveFileId=res;ok++}else err++;
+  }
+  saveDB();showAlert('Sync: '+ok+' inviati, '+err+' errori.',err?'err':'ok');renderSync();
+}
+
+// ── FIRMA ─────────────────────────────────────────────
+function initPad(id){
+  var canvas=el('canvas-'+id);if(!canvas)return;
+  var dpr=window.devicePixelRatio||1;
+  canvas.width=canvas.offsetWidth*dpr;
+  canvas.height=canvas.offsetHeight*dpr;
+  var ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.strokeStyle='#1a1a18';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';
+  padState[id]={drawing:false,empty:true};
+  function getXY(e){
+    var r=canvas.getBoundingClientRect();
+    var src=e.touches?e.touches[0]:e;
+    return{x:src.clientX-r.left,y:src.clientY-r.top};
+  }
+  function start(e){e.preventDefault();var p=getXY(e);ctx.beginPath();ctx.moveTo(p.x,p.y);padState[id].drawing=true;padState[id].empty=false;canvas.classList.add('signed')}
+  function move(e){e.preventDefault();if(!padState[id].drawing)return;var p=getXY(e);ctx.lineTo(p.x,p.y);ctx.stroke()}
+  function stop(e){e.preventDefault();padState[id].drawing=false}
+  canvas.addEventListener('mousedown',start);
+  canvas.addEventListener('mousemove',move);
+  canvas.addEventListener('mouseup',stop);
+  canvas.addEventListener('touchstart',start,{passive:false});
+  canvas.addEventListener('touchmove',move,{passive:false});
+  canvas.addEventListener('touchend',stop,{passive:false});
+}
+function clearFirma(id){
+  var canvas=el('canvas-'+id);if(!canvas)return;
+  var dpr=window.devicePixelRatio||1;
+  canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+  padState[id]={drawing:false,empty:true};
+  canvas.classList.remove('signed');
+}
+function getFirmaDataUrl(id){
+  var canvas=el('canvas-'+id);
+  if(!canvas||!padState[id]||padState[id].empty)return null;
+  return canvas.toDataURL('image/png');
+}
+function apriRaccoltaFirme(){
+  if(!validaBase())return;
+  firmaRapportino=getForm();
+  clearFirma('tecnico');clearFirma('cliente');
+  firmaCorrente={tecnico:null,cliente:null};
+  el('firma-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  setTimeout(function(){initPad('tecnico');initPad('cliente')},100);
+}
+function chiudiFirma(){
+  el('firma-overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+function stampaPdfFirma(){
+  firmaCorrente.tecnico=getFirmaDataUrl('tecnico');
+  firmaCorrente.cliente=getFirmaDataUrl('cliente');
+  chiudiFirma();
+  mostraAnteprima();
+  setTimeout(function(){window.print()},400);
+}
+async function firmaESalva(){
+  var ft=getFirmaDataUrl('tecnico');
+  var fc=getFirmaDataUrl('cliente');
+  if(!ft){showAlert('La firma del tecnico è obbligatoria.','err');return}
+  if(!fc){showAlert('La firma del cliente è obbligatoria.','err');return}
+  firmaCorrente={tecnico:ft,cliente:fc};
+  var r=firmaRapportino||getForm();
+  if(!valida()||!operai.length){r=getForm();}
+  r.firme={tecnico:ft,cliente:fc,dataFirma:new Date().toISOString()};
+  r.firmato=true;
+  salvaMats();upsert(r);saveDB();updateCnt();editId=r.id;
+  chiudiFirma();
+  showAlert('Firme acquisite. Invio su Drive...','info');
+  var res=await uploadDrive(r);
+  if(res){
+    r.syncedNas=true;r.syncedAt=new Date().toISOString();
+    if(res!==true)r.driveFileId=res;
+    upsert(r);saveDB();
+    chiudiFirma();resetForm();showTab('nuovo');window.scrollTo(0,0);
+    showToastCenter('Rapportino firmato\ne inviato su Drive!','✅');
+  }else{
+    showAlert('Firme salvate in locale. Errore Drive.','err');
+  }
+}
+
+// ── IDEE E SUGGERIMENTI ──────────────────────────────
+function apriIdee(){
+  el('idee-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  el('idee-nome').value='';el('idee-testo').value='';
+}
+function chiudiIdee(){
+  el('idee-overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+async function inviaIdea(){
+  var nome=(el('idee-nome').value||'').trim();
+  var testo=(el('idee-testo').value||'').trim();
+  if(!testo){showAlert('Scrivi un messaggio prima di inviare.','err');return;}
+  try{
+    var res=await fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({_action:'sendIdea',nome:nome,testo:testo})});
+    chiudiIdee();
+    showToastCenter('Idea inviata!\nGrazie per il suggerimento!','💡');
+  }catch(e){showAlert('Errore invio: '+e.message,'err');}
+}
+
+// ── OVERLAY MOBILE OPERAI ────────────────────────────
+function apriOpOverlay(){
+  var overlay=el('op-overlay');
+  var searchInp=el('op-overlay-search');
+  overlay.classList.add('open');
+  document.body.style.overflow='hidden';
+  searchInp.value='';
+  filtraOpOverlay('');
+  setTimeout(function(){searchInp.focus();},100);
+}
+function chiudiOpOverlay(){
+  el('op-overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+function filtraOpOverlay(q){
+  var src=operaiPred||[];
+  var hits=q?src.filter(function(n){return n.toLowerCase().includes(q.toLowerCase());}):src;
+  var list=el('op-overlay-list');
+  if(!hits.length){list.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3)">Nessun operaio trovato</div>';return;}
+  list.innerHTML=hits.map(function(n){
+    return "<div class=\"ac-overlay-item\" onclick=\"selOpOverlay('"+esc(n)+"')\">"+esc(n)+"</div>";
+  }).join('');
+}
+function selOpOverlay(val){
+  var inp=el('op-new-nome');
+  if(inp)inp.value=val.toUpperCase();
+  chiudiOpOverlay();
+}
+
+// ── OVERLAY MOBILE TECNICO ───────────────────────────
+function apriTecOverlay(){
+  var overlay=el('tec-overlay');
+  var searchInp=el('tec-overlay-search');
+  overlay.classList.add('open');
+  document.body.style.overflow='hidden';
+  searchInp.value='';
+  filtraTecOverlay('');
+  setTimeout(function(){searchInp.focus();},100);
+}
+function chiudiTecOverlay(){
+  el('tec-overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+function filtraTecOverlay(q){
+  var src=operaiPred||[];
+  var hits=q?src.filter(function(n){return n.toLowerCase().includes(q.toLowerCase());}):src;
+  var list=el('tec-overlay-list');
+  if(!hits.length){list.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3)">Nessun tecnico trovato</div>';return;}
+  list.innerHTML=hits.map(function(n){
+    return "<div class=\"ac-overlay-item\" onclick=\"selTecOverlay('"+esc(n)+"')\">"+esc(n)+"</div>";
+  }).join('');
+}
+function selTecOverlay(val){
+  var inp=el('f-tecnico');
+  if(inp)inp.value=val.toUpperCase();
+  chiudiTecOverlay();
+  var giaPresente=operai.some(function(o){return o.nome.toUpperCase()===val.toUpperCase();});
+  if(!giaPresente){
+    operai.unshift({id:Date.now()+Math.random(),nome:val.toUpperCase(),oreLav:0,oreStr:0,oreSab:0,oreFest:0,oreViag:0});
+    renderOp();
+  }
+}
+
+// ── TOAST CENTRATO ───────────────────────────────────
+function showToastCenter(msg,icon){
+  var t=el('toast-center');var m=el('toast-center-msg');var ic=el('toast-center-icon');
+  if(!t)return;
+  m.textContent=msg;ic.textContent=icon||'✅';
+  t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2800);
+}
+
+function showAlert(msg,type){
+  var a=el('alert-bar');if(!a)return;
+  a.textContent=msg;
+  a.className='alert alert-'+type+' show';
+  setTimeout(function(){a.classList.remove('show');},3500);
+}
+
+// ── CSV ──────────────────────────────────────────────
+function csvR(){
+  var cells=Array.prototype.slice.call(arguments);
+  return cells.map(function(c){var s=String(c!=null?c:'');return s.includes(',')||s.includes('"')||s.includes('\n')?'"'+s.replace(/"/g,'""')+'"':s}).join(',');
+}
+function scaricaCsv(){esportaCsv(getForm())}
+function esportaCsv(r){
+  var lines=[
+    csvR('RAPPORTINO N.'+(r.numero||''),'Data',r.data||''),
+    csvR('Cliente',r.cliente||'','Commessa',r.commessa||''),
+    csvR('Tecnico',r.tecnico||'','Tipo',r.tipo||''),
+    csvR(''),csvR('MATERIALI'),csvR('Materiale','Qtà','Unità')
+  ].concat((r.materiali||[]).map(function(m){return csvR(m.desc,m.qty,m.unit)}))
+  .concat([csvR(''),csvR('OPERAI E ORE'),csvR('Operaio','Ord.','Str.','Sab.','Fest.','Viag.')])
+  .concat((r.operai||[]).map(function(o){return csvR(o.nome,fmt(o.oreLav||0),fmt(o.oreStr||0),fmt(o.oreSab||0),fmt(o.oreFest||0),fmt(o.oreViag||0))}))
+  .concat([csvR(''),csvR('Note',r.note||'')]);
+  var blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=(r.numero||'rapportino')+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+// ── INIT ─────────────────────────────────────────────
+async function init(){
+  setToday();
+  loadDB();
+  updateCnt();
+  renderLista();
+  renderSync();
+  await caricaConfig();
+  await autoNum();
+  testConn();
+}
+init();
+</script>
+
+<!-- TOAST CENTRATO MOBILE -->
+<div class="toast-center" id="toast-center">
+  <span class="toast-center-icon" id="toast-center-icon">✅</span>
+  <div class="toast-center-msg" id="toast-center-msg"></div>
+</div>
+
+</body>
+</html>
