@@ -86,6 +86,11 @@ tr:last-child td{border-bottom:none}
 
   <div class="card" id="step1">
     <div class="card-title">1 — Seleziona commessa</div>
+    <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:flex-end">
+      <div class="fg" style="max-width:160px"><label>Periodo dal</label><input type="date" id="periodo-da" onchange="ricalcolaSeAttivo()"></div>
+      <div class="fg" style="max-width:160px"><label>Periodo al</label><input type="date" id="periodo-a" onchange="ricalcolaSeAttivo()"></div>
+      <button class="btn" onclick="resetPeriodo()">&#10006; Rimuovi filtro periodo</button>
+    </div>
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
       <input type="text" id="search-commessa" placeholder="Cerca commessa, cliente..." oninput="filtraCommesse()" style="max-width:300px">
       <button class="btn btn-accent" onclick="caricaCommesse()">&#8635; Aggiorna</button>
@@ -206,25 +211,65 @@ function filtraCommesse() {
   }).join('');
 }
 
+var ultimaCommessaSelezionata = null;
+
+function getPeriodo() {
+  var da = el('periodo-da') ? el('periodo-da').value : '';
+  var a  = el('periodo-a')  ? el('periodo-a').value  : '';
+  return { da: da, a: a };
+}
+
+function ricalcolaSeAttivo() {
+  if (ultimaCommessaSelezionata) selezionaCommessa(ultimaCommessaSelezionata);
+}
+
+function resetPeriodo() {
+  if (el('periodo-da')) el('periodo-da').value = '';
+  if (el('periodo-a'))  el('periodo-a').value  = '';
+  ricalcolaSeAttivo();
+}
+
 async function selezionaCommessa(commessa) {
   commessaCorrente = commesseMap[commessa];
   if (!commessaCorrente) return;
+  ultimaCommessaSelezionata = commessa;
 
   el('step1').style.display = 'none';
   el('step2').style.display = 'block';
   el('step3').style.display = 'none';
   el('tabella-tariffe').innerHTML = '<div class="empty">Caricamento operai...</div>';
 
+  var periodo = getPeriodo();
+  var rapportiniFiltrati = commessaCorrente.rapportini.filter(function(r) {
+    if (periodo.da && (r.data || '') < periodo.da) return false;
+    if (periodo.a  && (r.data || '') > periodo.a)  return false;
+    return true;
+  });
+
+  var totLavP  = rapportiniFiltrati.reduce(function(s,r){return s+(r.totLav ||0)},0);
+  var totStrP  = rapportiniFiltrati.reduce(function(s,r){return s+(r.totStr ||0)},0);
+  var totViagP = rapportiniFiltrati.reduce(function(s,r){return s+(r.totViag||0)},0);
+
+  var periodoLabel = (periodo.da || periodo.a)
+    ? '<div class="info-box-item"><div class="lbl">Periodo</div><div class="val">' + (periodo.da || '...') + ' &rarr; ' + (periodo.a || '...') + '</div></div>'
+    : '';
+
   el('info-commessa').innerHTML =
     '<div class="info-box">' +
     '<div class="info-box-item"><div class="lbl">Commessa</div><div class="val">' + esc(commessa) + '</div></div>' +
     '<div class="info-box-item"><div class="lbl">Cliente</div><div class="val">' + esc(commessaCorrente.cliente) + '</div></div>' +
-    '<div class="info-box-item"><div class="lbl">Rapportini</div><div class="val">' + commessaCorrente.rapportini.length + '</div></div>' +
-    '<div class="info-box-item"><div class="lbl">Ore totali</div><div class="val">' + fmt(commessaCorrente.totLav) + 'h lav. / ' + fmt(commessaCorrente.totStr) + 'h str. / ' + fmt(commessaCorrente.totViag) + 'h viag.</div></div>' +
+    '<div class="info-box-item"><div class="lbl">Rapportini</div><div class="val">' + rapportiniFiltrati.length + ' / ' + commessaCorrente.rapportini.length + '</div></div>' +
+    '<div class="info-box-item"><div class="lbl">Ore totali</div><div class="val">' + fmt(totLavP) + 'h lav. / ' + fmt(totStrP) + 'h str. / ' + fmt(totViagP) + 'h viag.</div></div>' +
+    periodoLabel +
     '</div>';
 
+  if (!rapportiniFiltrati.length) {
+    renderTariffe({});
+    return;
+  }
+
   // Carica dettaglio di ogni rapportino per avere gli operai
-  var fileIds = commessaCorrente.rapportini.map(function(r) { return r.fileId; }).filter(Boolean);
+  var fileIds = rapportiniFiltrati.map(function(r) { return r.fileId; }).filter(Boolean);
   var operaiMap = {};
   var loaded = 0;
   var total = fileIds.length;
@@ -399,7 +444,23 @@ function salvaTariffeGenerali(){
     viag: parseFloat(el('tg-viag').value) || 0
   };
   try { localStorage.setItem('tariffe_generali_v1', JSON.stringify(tariffeGenerali)); } catch(e) {}
-  showAlert('Tariffe generali salvate. Verranno applicate come default ai nuovi operai.');
+
+  // Se una commessa e' gia aperta, applica subito le nuove tariffe generali
+  // a tutti gli operai che non hanno una tariffa specifica salvata
+  if (commessaCorrente && commessaCorrente.operaiMap) {
+    Object.keys(commessaCorrente.operaiMap).forEach(function(nome) {
+      if (!tariffe[nome]) tariffe[nome] = {};
+      var t = tariffe[nome];
+      if (t.lav  == null || t.lav  === '' || t.lav  === 0) t.lav  = tariffeGenerali.lav;
+      if (t.str  == null || t.str  === '' || t.str  === 0) t.str  = tariffeGenerali.str;
+      if (t.sab  == null || t.sab  === '' || t.sab  === 0) t.sab  = tariffeGenerali.sab;
+      if (t.fest == null || t.fest === '' || t.fest === 0) t.fest = tariffeGenerali.fest;
+      if (t.viag == null || t.viag === '' || t.viag === 0) t.viag = tariffeGenerali.viag;
+    });
+    renderTariffe(commessaCorrente.operaiMap);
+  }
+
+  showAlert('Tariffe generali salvate e applicate.');
 }
 
 popolaCampiTariffeGenerali();
