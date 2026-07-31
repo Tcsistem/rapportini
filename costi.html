@@ -69,6 +69,21 @@ tr:last-child td{border-bottom:none}
   <div id="alert" class="alert"></div>
 
   <!-- STEP 1 -->
+  <div class="card" id="card-tariffe-generali">
+    <div class="card-title">Tariffe generali (&#8364;/h)</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:14px">Impostale una sola volta: verranno applicate di default a tutti gli operai. Puoi comunque modificarle per singolo operaio dopo aver selezionato una commessa.</p>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">
+      <div class="fg"><label>Ordinario</label><input type="number" id="tg-lav" min="0" step="0.5" placeholder="0,00"></div>
+      <div class="fg"><label>Straordinario</label><input type="number" id="tg-str" min="0" step="0.5" placeholder="0,00"></div>
+      <div class="fg"><label>Sabato</label><input type="number" id="tg-sab" min="0" step="0.5" placeholder="0,00"></div>
+      <div class="fg"><label>Festivo</label><input type="number" id="tg-fest" min="0" step="0.5" placeholder="0,00"></div>
+      <div class="fg"><label>Viaggio</label><input type="number" id="tg-viag" min="0" step="0.5" placeholder="0,00"></div>
+    </div>
+    <div style="margin-top:14px">
+      <button class="btn btn-accent" onclick="salvaTariffeGenerali()">&#128190; Salva tariffe generali</button>
+    </div>
+  </div>
+
   <div class="card" id="step1">
     <div class="card-title">1 — Seleziona commessa</div>
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
@@ -122,6 +137,9 @@ var commessaCorrente = null;
 var tariffe = {};
 
 try { tariffe = JSON.parse(localStorage.getItem('tariffe_v1') || '{}'); } catch(e) {}
+var tariffeGenerali = { lav: 0, str: 0, sab: 0, fest: 0, viag: 0 };
+try { tariffeGenerali = JSON.parse(localStorage.getItem('tariffe_generali_v1') || '{}'); } catch(e) {}
+if (typeof tariffeGenerali.lav === 'undefined') tariffeGenerali = { lav: 0, str: 0, sab: 0, fest: 0, viag: 0 };
 
 function el(id) { return document.getElementById(id); }
 function fmt(n) { n = Number(n) || 0; return n % 1 === 0 ? n : n.toFixed(1); }
@@ -251,6 +269,11 @@ function renderTariffe(operaiMap) {
   }
   var rows = operai.map(function(o, i) {
     var t = tariffe[o.nome] || {};
+    var dLav  = (t.lav  != null && t.lav  !== '') ? t.lav  : (tariffeGenerali.lav  || '');
+    var dStr  = (t.str  != null && t.str  !== '') ? t.str  : (tariffeGenerali.str  || '');
+    var dSab  = (t.sab  != null && t.sab  !== '') ? t.sab  : (tariffeGenerali.sab  || '');
+    var dFest = (t.fest != null && t.fest !== '') ? t.fest : (tariffeGenerali.fest || '');
+    var dViag = (t.viag != null && t.viag !== '') ? t.viag : (tariffeGenerali.viag || '');
     return '<tr>' +
       '<td style="font-weight:600">' + esc(o.nome) + '</td>' +
       '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreLav) + 'h</td>' +
@@ -258,11 +281,11 @@ function renderTariffe(operaiMap) {
       '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreSab || 0) + 'h</td>' +
       '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreFest || 0) + 'h</td>' +
       '<td style="text-align:right;font-family:var(--mono)">' + fmt(o.oreViag) + 'h</td>' +
-      '<td><input type="number" class="t-lav" data-nome="' + esc(o.nome) + '" value="' + (t.lav || '') + '" placeholder="0,00" min="0" step="0.5"></td>' +
-      '<td><input type="number" class="t-str" data-nome="' + esc(o.nome) + '" value="' + (t.str || '') + '" placeholder="0,00" min="0" step="0.5"></td>' +
-      '<td><input type="number" class="t-sab" data-nome="' + esc(o.nome) + '" value="' + (t.sab || '') + '" placeholder="0,00" min="0" step="0.5"></td>' +
-      '<td><input type="number" class="t-fest" data-nome="' + esc(o.nome) + '" value="' + (t.fest || '') + '" placeholder="0,00" min="0" step="0.5"></td>' +
-      '<td><input type="number" class="t-viag" data-nome="' + esc(o.nome) + '" value="' + (t.viag || '') + '" placeholder="0,00" min="0" step="0.5"></td>' +
+      '<td><input type="number" class="t-lav" data-nome="' + esc(o.nome) + '" value="' + dLav + '" placeholder="0,00" min="0" step="0.5"></td>' +
+      '<td><input type="number" class="t-str" data-nome="' + esc(o.nome) + '" value="' + dStr + '" placeholder="0,00" min="0" step="0.5"></td>' +
+      '<td><input type="number" class="t-sab" data-nome="' + esc(o.nome) + '" value="' + dSab + '" placeholder="0,00" min="0" step="0.5"></td>' +
+      '<td><input type="number" class="t-fest" data-nome="' + esc(o.nome) + '" value="' + dFest + '" placeholder="0,00" min="0" step="0.5"></td>' +
+      '<td><input type="number" class="t-viag" data-nome="' + esc(o.nome) + '" value="' + dViag + '" placeholder="0,00" min="0" step="0.5"></td>' +
     '</tr>';
   }).join('');
 
@@ -360,6 +383,26 @@ function resetSelezione() {
   el('step3').style.display = 'none';
 }
 
+function popolaCampiTariffeGenerali(){
+  el('tg-lav').value  = tariffeGenerali.lav  || '';
+  el('tg-str').value  = tariffeGenerali.str  || '';
+  el('tg-sab').value  = tariffeGenerali.sab  || '';
+  el('tg-fest').value = tariffeGenerali.fest || '';
+  el('tg-viag').value = tariffeGenerali.viag || '';
+}
+function salvaTariffeGenerali(){
+  tariffeGenerali = {
+    lav:  parseFloat(el('tg-lav').value)  || 0,
+    str:  parseFloat(el('tg-str').value)  || 0,
+    sab:  parseFloat(el('tg-sab').value)  || 0,
+    fest: parseFloat(el('tg-fest').value) || 0,
+    viag: parseFloat(el('tg-viag').value) || 0
+  };
+  try { localStorage.setItem('tariffe_generali_v1', JSON.stringify(tariffeGenerali)); } catch(e) {}
+  showAlert('Tariffe generali salvate. Verranno applicate come default ai nuovi operai.');
+}
+
+popolaCampiTariffeGenerali();
 caricaCommesse();
 </script>
 </body>
