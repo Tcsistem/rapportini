@@ -846,7 +846,7 @@ function gbFiltroRicerca(q) {
   gbRenderLista(filtrati);
 }
 
-function gbSelezionaServizio(s) {
+async function gbSelezionaServizio(s) {
   gbSelezionato = s;
   el('gb-det-cliente').textContent = s.cliente || '—';
   el('gb-det-luogo').textContent = s.luogo || '—';
@@ -854,6 +854,14 @@ function gbSelezionaServizio(s) {
   el('gb-det-numero').textContent = s.numero || '—';
   el('gb-dettaglio').style.display = 'block';
   gbLog('Selezionato: ' + s.numero + ' — ' + s.cliente);
+
+  // DEBUG: interroga endpoint contratti per capire come e' collegato il cliente
+  try {
+    var contratti = await gbFetch('/contratti/' + s.id);
+    gbLog('DEBUG contratti per servizio ' + s.numero + ': ' + JSON.stringify(contratti).slice(0, 800));
+  } catch(e) {
+    gbLog('DEBUG contratti errore: ' + e.message);
+  }
 }
 
 function importaInRapportino() {
