@@ -341,8 +341,14 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
         <input type="text" id="f-num" readonly style="background:var(--surface2);color:var(--text2);cursor:not-allowed"></div>
       <div class="fg"><label>Data</label><input type="date" id="f-data"></div>
       <div class="fg"><label>Cliente / Azienda</label><input type="text" id="f-cliente" placeholder="Ragione sociale"></div>
-      <div class="fg"><label>N. Commessa <span style="color:var(--red)">*</span></label>
-        <input type="text" id="f-commessa" placeholder="es. C-2025-042"></div>
+      <div class="fg" style="position:relative">
+        <label>N. Commessa <span style="color:var(--red)">*</span></label>
+        <input type="text" id="f-commessa" placeholder="es. C-2025-042" autocomplete="off"
+          oninput="commessaInputHandler(this)"
+          onfocus="commessaInputHandler(this)"
+          onblur="setTimeout(function(){closeAc('commessa-ac')},200)">
+        <div class="ac-list" id="commessa-ac"></div>
+      </div>
       <div class="fg"><label>Indirizzo intervento</label><input type="text" id="f-indirizzo" placeholder="Via, città"></div>
       <div class="fg"><label>Tecnico responsabile <span style="color:var(--red)">*</span></label>
         <input type="text" id="f-tecnico" placeholder="CERCA TECNICO..." autocomplete="off" readonly
@@ -641,6 +647,84 @@ let padState={};
 
 const K_DAT='rap_dat_v5', K_MATS='rap_mats_v2';
 
+// ── AUTOCOMPLETE COMMESSA (ricerca live su GeoBadge) ──
+var commessaSearchTimer = null;
+var gbCaricatoPerAutocomplete = false;
+
+async function commessaInputHandler(input) {
+  var q = input.value.trim();
+  var list = el('commessa-ac');
+
+  // Se GeoBadge non è ancora stato caricato, caricalo silenziosamente la prima volta
+  if (!gbCaricatoPerAutocomplete && !gbServizi.length) {
+    gbCaricatoPerAutocomplete = true;
+    try { await caricaDatiGeobadgeSilenzioso(); } catch(e) {}
+  }
+
+  if (!q) { list.classList.remove('open'); return; }
+
+  clearTimeout(commessaSearchTimer);
+  commessaSearchTimer = setTimeout(function() {
+    var ql = q.toLowerCase();
+    var hits = gbServizi.filter(function(s) {
+      return (s.numero + ' ' + s.cliente + ' ' + s.luogo + ' ' + s.descrizione).toLowerCase().indexOf(ql) !== -1;
+    }).slice(0, 8);
+
+    if (!hits.length) { list.classList.remove('open'); return; }
+
+    posizionaDropdown(input, list);
+    window._commessaHits = hits;
+    list.innerHTML = hits.map(function(s, i) {
+      var label = '<b>' + esc(s.numero) + '</b> \u2014 ' + esc(s.cliente) + (s.luogo ? ' (' + esc(s.luogo) + ')' : '');
+      return '<div class="ac-item" onmousedown="selCommessaGbIdx(' + i + ')">' + label + '</div>';
+    }).join('');
+    list.classList.add('open');
+  }, 250);
+}
+
+function selCommessaGbIdx(idx) {
+  var s = window._commessaHits && window._commessaHits[idx];
+  if (!s) return;
+  el('f-commessa').value = s.numero || '';
+  if (!el('f-cliente').value) el('f-cliente').value = s.cliente || '';
+  if (!el('f-indirizzo').value) el('f-indirizzo').value = s.luogo || '';
+  closeAc('commessa-ac');
+  showAlert('✓ Dati importati da GeoBadge.', 'ok');
+}
+
+async function caricaDatiGeobadgeSilenzioso() {
+  try {
+    var clienti = await gbFetch('/clienti');
+    gbClientiMap = {};
+    (clienti || []).forEach(function(cl) {
+      gbClientiMap[cl.Id || cl.id] = cl.RagioneSociale || cl.Nome || cl.Descrizione || '(cliente senza nome)';
+    });
+
+    var luoghi = await gbFetch('/luoghi');
+    gbLuoghiMap = {};
+    (luoghi || []).forEach(function(l) {
+      gbLuoghiMap[l.Id || l.id] = l.Descrizione || l.Nome || l.Indirizzo || '';
+    });
+
+    var servizi = await gbFetch('/servizi');
+    gbServizi = (servizi || []).map(function(s) {
+      var clienteId = s.ClienteId || s.clienteId || s.IdCliente;
+      var luogoId   = s.LuogoId   || s.luogoId   || s.IdLuogo;
+      return {
+        id: s.Id || s.id,
+        numero: s.Codice || s.Numero || s.NumeroServizio || String(s.Id || s.id || ''),
+        descrizione: s.Descrizione || s.Nome || '(senza descrizione)',
+        clienteId: clienteId,
+        cliente: gbClientiMap[clienteId] || '',
+        luogoId: luogoId,
+        luogo: gbLuoghiMap[luogoId] || ''
+      };
+    }).filter(function(s) { return s.descrizione; });
+  } catch(e) {
+    console.log('GeoBadge autocomplete non disponibile: ' + e.message);
+  }
+}
+
 // ── GEOBADGE ──────────────────────────────────────────
 var gbServizi = [];
 var gbClientiMap = {};
@@ -682,6 +766,7 @@ async function caricaDatiGeobadge() {
       gbClientiMap[cl.Id || cl.id] = cl.RagioneSociale || cl.Nome || cl.Descrizione || '(cliente senza nome)';
     });
     gbLog('Clienti caricati: ' + Object.keys(gbClientiMap).length);
+    if (clienti && clienti.length) gbLog('DEBUG primo cliente: ' + JSON.stringify(clienti[0]));
 
     // 2. Carica luoghi
     var luoghi = await gbFetch('/luoghi');
@@ -693,6 +778,7 @@ async function caricaDatiGeobadge() {
 
     // 3. Carica servizi (commesse)
     var servizi = await gbFetch('/servizi');
+    if (servizi && servizi.length) gbLog('DEBUG primo servizio: ' + JSON.stringify(servizi[0]));
     gbServizi = (servizi || []).map(function(s) {
       var clienteId = s.ClienteId || s.clienteId || s.IdCliente;
       var luogoId   = s.LuogoId   || s.luogoId   || s.IdLuogo;
