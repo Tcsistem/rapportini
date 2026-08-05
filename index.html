@@ -696,8 +696,16 @@ async function caricaDatiGeobadgeSilenzioso() {
   try {
     var clienti = await gbFetch('/clienti');
     gbClientiMap = {};
+    gbClientiIndirizzoMap = {};
     (clienti || []).forEach(function(cl) {
-      gbClientiMap[cl.Id || cl.id] = cl.RagioneSociale || cl.Nome || cl.Descrizione || '(cliente senza nome)';
+      var key = cl.AziendaId || cl.Id;
+      gbClientiMap[key] = cl.Descrizione || cl.RagioneSociale || cl.Nome || '(cliente senza nome)';
+      if (cl.Indirizzo) {
+        var ind = cl.Indirizzo;
+        var parti = [ind.Via, ind.NumeroCivico].filter(Boolean).join(' ');
+        var citta = [ind.Cap, ind.Citta, ind.Provincia ? '(' + ind.Provincia + ')' : ''].filter(Boolean).join(' ');
+        gbClientiIndirizzoMap[key] = [parti, citta].filter(Boolean).join(', ');
+      }
     });
 
     var luoghi = await gbFetch('/luoghi');
@@ -708,16 +716,14 @@ async function caricaDatiGeobadgeSilenzioso() {
 
     var servizi = await gbFetch('/servizi');
     gbServizi = (servizi || []).map(function(s) {
-      var clienteId = s.ClienteId || s.clienteId || s.IdCliente;
-      var luogoId   = s.LuogoId   || s.luogoId   || s.IdLuogo;
+      var aziendaId = s.IdAzienda;
       return {
         id: s.Id || s.id,
-        numero: s.Codice || s.Numero || s.NumeroServizio || String(s.Id || s.id || ''),
+        numero: s.Numero || s.Codice || String(s.Id || s.id || ''),
         descrizione: s.Descrizione || s.Nome || '(senza descrizione)',
-        clienteId: clienteId,
-        cliente: gbClientiMap[clienteId] || '',
-        luogoId: luogoId,
-        luogo: gbLuoghiMap[luogoId] || ''
+        clienteId: aziendaId,
+        cliente: gbClientiMap[aziendaId] || '',
+        luogo: gbClientiIndirizzoMap[aziendaId] || ''
       };
     }).filter(function(s) { return s.descrizione; });
   } catch(e) {
@@ -729,6 +735,7 @@ async function caricaDatiGeobadgeSilenzioso() {
 var gbServizi = [];
 var gbClientiMap = {};
 var gbLuoghiMap = {};
+var gbClientiIndirizzoMap = {};
 var gbSelezionato = null;
 
 function gbLog(msg) {
@@ -759,16 +766,23 @@ async function caricaDatiGeobadge() {
   gbLog('Avvio caricamento clienti, luoghi e servizi...');
 
   try {
-    // 1. Carica clienti
+    // 1. Carica clienti (chiave di join: AziendaId)
     var clienti = await gbFetch('/clienti');
     gbClientiMap = {};
+    gbClientiIndirizzoMap = {};
     (clienti || []).forEach(function(cl) {
-      gbClientiMap[cl.Id || cl.id] = cl.RagioneSociale || cl.Nome || cl.Descrizione || '(cliente senza nome)';
+      var key = cl.AziendaId || cl.Id;
+      gbClientiMap[key] = cl.Descrizione || cl.RagioneSociale || cl.Nome || '(cliente senza nome)';
+      if (cl.Indirizzo) {
+        var ind = cl.Indirizzo;
+        var parti = [ind.Via, ind.NumeroCivico].filter(Boolean).join(' ');
+        var citta = [ind.Cap, ind.Citta, ind.Provincia ? '(' + ind.Provincia + ')' : ''].filter(Boolean).join(' ');
+        gbClientiIndirizzoMap[key] = [parti, citta].filter(Boolean).join(', ');
+      }
     });
     gbLog('Clienti caricati: ' + Object.keys(gbClientiMap).length);
-    if (clienti && clienti.length) gbLog('DEBUG primo cliente: ' + JSON.stringify(clienti[0]));
 
-    // 2. Carica luoghi
+    // 2. Carica luoghi (usati come fallback extra se serve)
     var luoghi = await gbFetch('/luoghi');
     gbLuoghiMap = {};
     (luoghi || []).forEach(function(l) {
@@ -776,20 +790,17 @@ async function caricaDatiGeobadge() {
     });
     gbLog('Luoghi caricati: ' + Object.keys(gbLuoghiMap).length);
 
-    // 3. Carica servizi (commesse)
+    // 3. Carica servizi (commesse) — collegati al cliente tramite IdAzienda
     var servizi = await gbFetch('/servizi');
-    if (servizi && servizi.length) gbLog('DEBUG primo servizio: ' + JSON.stringify(servizi[0]));
     gbServizi = (servizi || []).map(function(s) {
-      var clienteId = s.ClienteId || s.clienteId || s.IdCliente;
-      var luogoId   = s.LuogoId   || s.luogoId   || s.IdLuogo;
+      var aziendaId = s.IdAzienda;
       return {
         id: s.Id || s.id,
-        numero: s.Codice || s.Numero || s.NumeroServizio || String(s.Id || s.id || ''),
+        numero: s.Numero || s.Codice || String(s.Id || s.id || ''),
         descrizione: s.Descrizione || s.Nome || '(senza descrizione)',
-        clienteId: clienteId,
-        cliente: gbClientiMap[clienteId] || '',
-        luogoId: luogoId,
-        luogo: gbLuoghiMap[luogoId] || ''
+        clienteId: aziendaId,
+        cliente: gbClientiMap[aziendaId] || '',
+        luogo: gbClientiIndirizzoMap[aziendaId] || ''
       };
     }).filter(function(s) { return s.descrizione; });
 
