@@ -641,6 +641,134 @@ let padState={};
 
 const K_DAT='rap_dat_v5', K_MATS='rap_mats_v2';
 
+// ── GEOBADGE ──────────────────────────────────────────
+var gbServizi = [];
+var gbClientiMap = {};
+var gbLuoghiMap = {};
+var gbSelezionato = null;
+
+function gbLog(msg) {
+  var box = el('gb-log');
+  if (!box) return;
+  var ora = new Date().toLocaleTimeString('it-IT');
+  box.textContent = '[' + ora + '] ' + msg + '\n' + box.textContent;
+}
+
+function gbSetDot(stato) {
+  var dot = el('gb-dot');
+  if (!dot) return;
+  dot.className = 'dot ' + (stato === 'ok' ? 'ok' : stato === 'err' ? 'err' : 'spin');
+}
+
+async function gbFetch(path) {
+  var res = await fetch(SCRIPT_URL + '?action=gb&path=' + encodeURIComponent(path) + '&_dc=' + Date.now());
+  var d = await res.json();
+  if (!d.ok) throw new Error(d.error || 'Errore GeoBadge');
+  return d.data;
+}
+
+async function caricaDatiGeobadge() {
+  gbSetDot('spin');
+  el('gb-stato').textContent = 'Connessione a GeoBadge...';
+  el('gb-error').style.display = 'none';
+  el('gb-commesse-wrap').style.display = 'none';
+  gbLog('Avvio caricamento clienti, luoghi e servizi...');
+
+  try {
+    // 1. Carica clienti
+    var clienti = await gbFetch('/clienti');
+    gbClientiMap = {};
+    (clienti || []).forEach(function(cl) {
+      gbClientiMap[cl.Id || cl.id] = cl.RagioneSociale || cl.Nome || cl.Descrizione || '(cliente senza nome)';
+    });
+    gbLog('Clienti caricati: ' + Object.keys(gbClientiMap).length);
+
+    // 2. Carica luoghi
+    var luoghi = await gbFetch('/luoghi');
+    gbLuoghiMap = {};
+    (luoghi || []).forEach(function(l) {
+      gbLuoghiMap[l.Id || l.id] = l.Descrizione || l.Nome || l.Indirizzo || '';
+    });
+    gbLog('Luoghi caricati: ' + Object.keys(gbLuoghiMap).length);
+
+    // 3. Carica servizi (commesse)
+    var servizi = await gbFetch('/servizi');
+    gbServizi = (servizi || []).map(function(s) {
+      var clienteId = s.ClienteId || s.clienteId || s.IdCliente;
+      var luogoId   = s.LuogoId   || s.luogoId   || s.IdLuogo;
+      return {
+        id: s.Id || s.id,
+        numero: s.Codice || s.Numero || s.NumeroServizio || String(s.Id || s.id || ''),
+        descrizione: s.Descrizione || s.Nome || '(senza descrizione)',
+        clienteId: clienteId,
+        cliente: gbClientiMap[clienteId] || '',
+        luogoId: luogoId,
+        luogo: gbLuoghiMap[luogoId] || ''
+      };
+    }).filter(function(s) { return s.descrizione; });
+
+    gbLog('Servizi caricati: ' + gbServizi.length);
+
+    gbSetDot('ok');
+    el('gb-stato').textContent = gbServizi.length + ' servizi disponibili';
+    el('gb-commesse-wrap').style.display = 'block';
+    gbRenderLista(gbServizi);
+
+  } catch(e) {
+    gbSetDot('err');
+    el('gb-stato').textContent = 'Errore di connessione';
+    el('gb-error').textContent = 'Errore: ' + e.message;
+    el('gb-error').style.display = 'block';
+    gbLog('ERRORE: ' + e.message);
+  }
+}
+
+function gbRenderLista(lista) {
+  var sel = el('gb-commessa-sel');
+  if (!sel) return;
+  sel.innerHTML = '';
+  lista.forEach(function(s, i) {
+    var opt = document.createElement('option');
+    opt.value = i;
+    var label = s.numero + ' — ' + s.cliente + (s.luogo ? ' (' + s.luogo + ')' : '') + ' — ' + s.descrizione;
+    opt.textContent = label;
+    sel.appendChild(opt);
+  });
+  sel.onchange = function() {
+    var idx = parseInt(sel.value, 10);
+    gbSelezionaServizio(lista[idx]);
+  };
+}
+
+function gbFiltroRicerca(q) {
+  q = (q || '').toLowerCase().trim();
+  if (!q) { gbRenderLista(gbServizi); return; }
+  var filtrati = gbServizi.filter(function(s) {
+    return (s.numero + ' ' + s.cliente + ' ' + s.luogo + ' ' + s.descrizione).toLowerCase().indexOf(q) !== -1;
+  });
+  gbRenderLista(filtrati);
+}
+
+function gbSelezionaServizio(s) {
+  gbSelezionato = s;
+  el('gb-det-cliente').textContent = s.cliente || '—';
+  el('gb-det-luogo').textContent = s.luogo || '—';
+  el('gb-det-commessa').textContent = s.descrizione || '—';
+  el('gb-det-numero').textContent = s.numero || '—';
+  el('gb-dettaglio').style.display = 'block';
+  gbLog('Selezionato: ' + s.numero + ' — ' + s.cliente);
+}
+
+function importaInRapportino() {
+  if (!gbSelezionato) { showAlert('Seleziona prima un servizio dalla lista.', 'err'); return; }
+  el('f-cliente').value = gbSelezionato.cliente || '';
+  el('f-commessa').value = gbSelezionato.numero || '';
+  el('f-indirizzo').value = gbSelezionato.luogo || '';
+  showTab('nuovo');
+  showAlert('✓ Dati importati da GeoBadge nel rapportino.', 'ok');
+  gbLog('Importato nel form: ' + gbSelezionato.numero);
+}
+
 // ── INIT ───────────────────────────────────────────────
 (async function init(){
   try{
