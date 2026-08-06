@@ -694,17 +694,18 @@ function selCommessaGbIdx(idx) {
 
 async function caricaDatiGeobadgeSilenzioso() {
   try {
-    var servizi = await gbFetch('/serviziCliente');
-    gbServizi = (servizi || []).map(function(s) {
+    var res = await fetch(SCRIPT_URL + '?action=gbLocale&_dc=' + Date.now());
+    var d = await res.json();
+    if (!d.ok) return;
+    gbServizi = (d.servizi || []).map(function(s) {
       return {
-        id: s.Id,
-        numero: s.Numero || String(s.Id || ''),
-        descrizione: s.Descrizione || '(senza descrizione)',
-        cliente: s.Cliente || '',
-        azienda: s.Azienda || '',
+        numero: s.numero || '',
+        descrizione: s.descrizione || '(senza descrizione)',
+        cliente: s.cliente || '',
+        azienda: s.azienda || '',
         luogo: ''
       };
-    }).filter(function(s) { return s.descrizione; });
+    }).filter(function(s) { return s.numero || s.descrizione; });
   } catch(e) {
     console.log('GeoBadge autocomplete non disponibile: ' + e.message);
   }
@@ -739,24 +740,25 @@ async function gbFetch(path) {
 
 async function caricaDatiGeobadge() {
   gbSetDot('spin');
-  el('gb-stato').textContent = 'Connessione a GeoBadge...';
+  el('gb-stato').textContent = 'Caricamento servizi...';
   el('gb-error').style.display = 'none';
   el('gb-commesse-wrap').style.display = 'none';
-  gbLog('Avvio caricamento servizi con cliente...');
+  gbLog('Caricamento elenco servizi importato da GeoBadge...');
 
   try {
-    // Un'unica chiamata: servizi con cliente gia' incluso
-    var servizi = await gbFetch('/serviziCliente');
-    gbServizi = (servizi || []).map(function(s) {
+    var res = await fetch(SCRIPT_URL + '?action=gbLocale&_dc=' + Date.now());
+    var d = await res.json();
+    if (!d.ok) throw new Error(d.error || 'Errore');
+
+    gbServizi = (d.servizi || []).map(function(s) {
       return {
-        id: s.Id,
-        numero: s.Numero || String(s.Id || ''),
-        descrizione: s.Descrizione || '(senza descrizione)',
-        cliente: s.Cliente || '',
-        azienda: s.Azienda || '',
+        numero: s.numero || '',
+        descrizione: s.descrizione || '(senza descrizione)',
+        cliente: s.cliente || '',
+        azienda: s.azienda || '',
         luogo: ''
       };
-    }).filter(function(s) { return s.descrizione; });
+    }).filter(function(s) { return s.numero || s.descrizione; });
 
     gbLog('Servizi caricati: ' + gbServizi.length);
 
@@ -767,7 +769,7 @@ async function caricaDatiGeobadge() {
 
   } catch(e) {
     gbSetDot('err');
-    el('gb-stato').textContent = 'Errore di connessione';
+    el('gb-stato').textContent = 'Errore di caricamento';
     el('gb-error').textContent = 'Errore: ' + e.message;
     el('gb-error').style.display = 'block';
     gbLog('ERRORE: ' + e.message);
