@@ -694,36 +694,15 @@ function selCommessaGbIdx(idx) {
 
 async function caricaDatiGeobadgeSilenzioso() {
   try {
-    var clienti = await gbFetch('/clienti');
-    gbClientiMap = {};
-    gbClientiIndirizzoMap = {};
-    (clienti || []).forEach(function(cl) {
-      var key = cl.AziendaId || cl.Id;
-      gbClientiMap[key] = cl.Descrizione || cl.RagioneSociale || cl.Nome || '(cliente senza nome)';
-      if (cl.Indirizzo) {
-        var ind = cl.Indirizzo;
-        var parti = [ind.Via, ind.NumeroCivico].filter(Boolean).join(' ');
-        var citta = [ind.Cap, ind.Citta, ind.Provincia ? '(' + ind.Provincia + ')' : ''].filter(Boolean).join(' ');
-        gbClientiIndirizzoMap[key] = [parti, citta].filter(Boolean).join(', ');
-      }
-    });
-
-    var luoghi = await gbFetch('/luoghi');
-    gbLuoghiMap = {};
-    (luoghi || []).forEach(function(l) {
-      gbLuoghiMap[l.Id || l.id] = l.Descrizione || l.Nome || l.Indirizzo || '';
-    });
-
-    var servizi = await gbFetch('/servizi');
+    var servizi = await gbFetch('/serviziCliente');
     gbServizi = (servizi || []).map(function(s) {
-      var aziendaId = s.IdAzienda;
       return {
-        id: s.Id || s.id,
-        numero: s.Numero || s.Codice || String(s.Id || s.id || ''),
-        descrizione: s.Descrizione || s.Nome || '(senza descrizione)',
-        clienteId: aziendaId,
-        cliente: gbClientiMap[aziendaId] || '',
-        luogo: gbClientiIndirizzoMap[aziendaId] || ''
+        id: s.Id,
+        numero: s.Numero || String(s.Id || ''),
+        descrizione: s.Descrizione || '(senza descrizione)',
+        cliente: s.Cliente || '',
+        azienda: s.Azienda || '',
+        luogo: ''
       };
     }).filter(function(s) { return s.descrizione; });
   } catch(e) {
@@ -763,44 +742,19 @@ async function caricaDatiGeobadge() {
   el('gb-stato').textContent = 'Connessione a GeoBadge...';
   el('gb-error').style.display = 'none';
   el('gb-commesse-wrap').style.display = 'none';
-  gbLog('Avvio caricamento clienti, luoghi e servizi...');
+  gbLog('Avvio caricamento servizi con cliente...');
 
   try {
-    // 1. Carica clienti (chiave di join: AziendaId)
-    var clienti = await gbFetch('/clienti');
-    gbClientiMap = {};
-    gbClientiIndirizzoMap = {};
-    (clienti || []).forEach(function(cl) {
-      var key = cl.AziendaId || cl.Id;
-      gbClientiMap[key] = cl.Descrizione || cl.RagioneSociale || cl.Nome || '(cliente senza nome)';
-      if (cl.Indirizzo) {
-        var ind = cl.Indirizzo;
-        var parti = [ind.Via, ind.NumeroCivico].filter(Boolean).join(' ');
-        var citta = [ind.Cap, ind.Citta, ind.Provincia ? '(' + ind.Provincia + ')' : ''].filter(Boolean).join(' ');
-        gbClientiIndirizzoMap[key] = [parti, citta].filter(Boolean).join(', ');
-      }
-    });
-    gbLog('Clienti caricati: ' + Object.keys(gbClientiMap).length);
-
-    // 2. Carica luoghi (usati come fallback extra se serve)
-    var luoghi = await gbFetch('/luoghi');
-    gbLuoghiMap = {};
-    (luoghi || []).forEach(function(l) {
-      gbLuoghiMap[l.Id || l.id] = l.Descrizione || l.Nome || l.Indirizzo || '';
-    });
-    gbLog('Luoghi caricati: ' + Object.keys(gbLuoghiMap).length);
-
-    // 3. Carica servizi (commesse) — collegati al cliente tramite IdAzienda
-    var servizi = await gbFetch('/servizi');
+    // Un'unica chiamata: servizi con cliente gia' incluso
+    var servizi = await gbFetch('/serviziCliente');
     gbServizi = (servizi || []).map(function(s) {
-      var aziendaId = s.IdAzienda;
       return {
-        id: s.Id || s.id,
-        numero: s.Numero || s.Codice || String(s.Id || s.id || ''),
-        descrizione: s.Descrizione || s.Nome || '(senza descrizione)',
-        clienteId: aziendaId,
-        cliente: gbClientiMap[aziendaId] || '',
-        luogo: gbClientiIndirizzoMap[aziendaId] || ''
+        id: s.Id,
+        numero: s.Numero || String(s.Id || ''),
+        descrizione: s.Descrizione || '(senza descrizione)',
+        cliente: s.Cliente || '',
+        azienda: s.Azienda || '',
+        luogo: ''
       };
     }).filter(function(s) { return s.descrizione; });
 
@@ -846,7 +800,7 @@ function gbFiltroRicerca(q) {
   gbRenderLista(filtrati);
 }
 
-async function gbSelezionaServizio(s) {
+function gbSelezionaServizio(s) {
   gbSelezionato = s;
   el('gb-det-cliente').textContent = s.cliente || '—';
   el('gb-det-luogo').textContent = s.luogo || '—';
@@ -854,14 +808,6 @@ async function gbSelezionaServizio(s) {
   el('gb-det-numero').textContent = s.numero || '—';
   el('gb-dettaglio').style.display = 'block';
   gbLog('Selezionato: ' + s.numero + ' — ' + s.cliente);
-
-  // DEBUG: interroga endpoint contratti per capire come e' collegato il cliente
-  try {
-    var contratti = await gbFetch('/contratti/' + s.id);
-    gbLog('DEBUG contratti per servizio ' + s.numero + ': ' + JSON.stringify(contratti).slice(0, 800));
-  } catch(e) {
-    gbLog('DEBUG contratti errore: ' + e.message);
-  }
 }
 
 function importaInRapportino() {
