@@ -685,7 +685,7 @@ async function commessaInputHandler(input) {
 function selCommessaGbIdx(idx) {
   var s = window._commessaHits && window._commessaHits[idx];
   if (!s) return;
-  el('f-commessa').value = s.numero || '';
+  el('f-commessa').value = s.descrizione || s.numero || '';
   if (!el('f-cliente').value) el('f-cliente').value = s.cliente || '';
   if (!el('f-indirizzo').value) el('f-indirizzo').value = s.luogo || '';
   closeAc('commessa-ac');
@@ -815,11 +815,11 @@ function gbSelezionaServizio(s) {
 function importaInRapportino() {
   if (!gbSelezionato) { showAlert('Seleziona prima un servizio dalla lista.', 'err'); return; }
   el('f-cliente').value = gbSelezionato.cliente || '';
-  el('f-commessa').value = gbSelezionato.numero || '';
+  el('f-commessa').value = gbSelezionato.descrizione || gbSelezionato.numero || '';
   el('f-indirizzo').value = gbSelezionato.luogo || '';
   showTab('nuovo');
   showAlert('✓ Dati importati da GeoBadge nel rapportino.', 'ok');
-  gbLog('Importato nel form: ' + gbSelezionato.numero);
+  gbLog('Importato nel form: ' + gbSelezionato.descrizione);
 }
 
 // ── INIT ───────────────────────────────────────────────
