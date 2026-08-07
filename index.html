@@ -675,7 +675,7 @@ async function commessaInputHandler(input) {
     posizionaDropdown(input, list);
     window._commessaHits = hits;
     list.innerHTML = hits.map(function(s, i) {
-      var label = '<b>' + esc(s.numero) + '</b> \u2014 ' + esc(s.cliente) + (s.luogo ? ' (' + esc(s.luogo) + ')' : '');
+      var label = '<b>' + esc(s.descrizione) + '</b> \u2014 ' + esc(s.cliente) + (s.luogo ? ' (' + esc(s.luogo) + ')' : '');
       return '<div class="ac-item" onmousedown="selCommessaGbIdx(' + i + ')">' + label + '</div>';
     }).join('');
     list.classList.add('open');
@@ -783,7 +783,7 @@ function gbRenderLista(lista) {
   lista.forEach(function(s, i) {
     var opt = document.createElement('option');
     opt.value = i;
-    var label = s.numero + ' — ' + s.cliente + (s.luogo ? ' (' + s.luogo + ')' : '') + ' — ' + s.descrizione;
+    var label = s.descrizione + ' — ' + s.cliente + (s.luogo ? ' (' + s.luogo + ')' : '');
     opt.textContent = label;
     sel.appendChild(opt);
   });
