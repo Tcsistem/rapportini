@@ -494,6 +494,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
     </div>
     <div id="sync-list"><div class="empty">Nessun rapportino salvato.</div></div>
     <button class="btn btn-blue" style="width:100%;margin-top:14px;padding:13px" onclick="sincTutti()">Sincronizza tutti i non inviati</button>
+    <button class="btn" style="width:100%;margin-top:8px;padding:11px;font-size:13px" onclick="pulisciSincronizzati()">🧹 Libera spazio (rimuovi inviati da oltre 1 mese)</button>
     <div class="log-box" id="log-box">Pronto.</div>
   </div>
 </div>
@@ -832,6 +833,8 @@ function importaInRapportino() {
   await caricaConfig();
   await autoNum();
   testConn();
+  // Pulizia automatica silenziosa: rimuove i rapportini inviati da oltre 30 giorni
+  try{ pulisciSincronizzati(true); }catch(e){}
 })();
 
 function el(id){return document.getElementById(id)}
@@ -1316,12 +1319,23 @@ async function uploadDrive(r){
     return false;
   }catch(e){return false}
 }
+function rimuoviLocale(id){
+  rapportini = rapportini.filter(function(x){ return x.id !== id; });
+  saveDB();
+  updateCnt();
+}
 async function salvaESinc(){
   if(!valida())return;
   var r=getForm();salvaMats();upsert(r);saveDB();updateCnt();editId=r.id;
   showAlert('Salvato. Invio su Drive...','info');
   var res=await uploadDrive(r);
-  if(res){r.syncedNas=true;r.syncedAt=new Date().toISOString();if(res!==true)r.driveFileId=res;upsert(r);saveDB();showToastCenter('Rapportino inviato\nsu Google Drive!','✅');resetForm();}
+  if(res){
+    r.syncedNas=true;r.syncedAt=new Date().toISOString();
+    if(res!==true)r.driveFileId=res;
+    upsert(r);saveDB();
+    showToastCenter('Rapportino inviato\nsu Google Drive!','✅');
+    resetForm();
+  }
   else showAlert('Salvato in locale. Errore Drive — riprova dalla scheda Sync.','err');
 }
 function renderSync(){
@@ -1339,9 +1353,37 @@ function renderSync(){
 async function sincUno(id){
   var r=rapportini.find(function(x){return x.id===id});if(!r)return;
   var res=await uploadDrive(r);
-  if(res){r.syncedNas=true;r.syncedAt=new Date().toISOString();if(res!==true)r.driveFileId=res;upsert(r);saveDB();showAlert('Inviato su Drive.','ok');}
+  if(res){
+    r.syncedNas=true;r.syncedAt=new Date().toISOString();
+    if(res!==true)r.driveFileId=res;
+    upsert(r);saveDB();
+    showAlert('Inviato su Drive.','ok');
+  }
   else showAlert('Errore invio.','err');
   renderSync();
+}
+function pulisciSincronizzati(silenzioso){
+  var prima = rapportini.length;
+  var sogliaMs = 30 * 24 * 60 * 60 * 1000; // 30 giorni
+  var ora = Date.now();
+  rapportini = rapportini.filter(function(r){
+    if(!r.syncedNas) return true; // non inviati: tieni sempre
+    var dataRif = r.syncedAt || r.createdAt;
+    if(!dataRif) return true; // se non sappiamo quando, tieni per sicurezza
+    var eta = ora - new Date(dataRif).getTime();
+    return eta < sogliaMs; // tieni solo se più recente di 30 giorni
+  });
+  var rimossi = prima - rapportini.length;
+  if(rimossi > 0){
+    saveDB();
+    updateCnt();
+    renderSync();
+    renderLista();
+  }
+  if(silenzioso) return rimossi;
+  if(rimossi > 0) showAlert(rimossi + ' rapportini inviati da oltre 1 mese sono stati rimossi dalla memoria del telefono.', 'ok');
+  else showAlert('Nessun rapportino da rimuovere: non ci sono invii più vecchi di 1 mese.', 'info');
+  return rimossi;
 }
 async function sincTutti(){
   var p=rapportini.filter(function(r){return!r.syncedNas});
