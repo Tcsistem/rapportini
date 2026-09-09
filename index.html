@@ -134,6 +134,13 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
   box-shadow:0 8px 40px rgba(0,0,0,.35);text-align:center;min-width:260px;max-width:85vw;
   opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1)}
 .toast-center.show{display:block;opacity:1;transform:translate(-50%,-50%) scale(1)}
+.conferma-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;align-items:center;justify-content:center;padding:20px}
+.conferma-overlay.open{display:flex}
+.conferma-box{background:var(--surface);border-radius:14px;padding:26px 24px;max-width:340px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.conferma-icon{font-size:36px;margin-bottom:10px}
+.conferma-msg{font-size:15px;font-weight:600;margin-bottom:6px;line-height:1.4}
+.conferma-sub{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.4}
+.conferma-btns{display:flex;flex-direction:column;gap:8px}
 .toast-center-icon{font-size:48px;margin-bottom:12px;display:block}
 .toast-center-msg{font-size:17px;font-weight:600;line-height:1.4}
 .alert-ok{background:var(--green-bg);color:var(--green);border-color:#b8ddb8}
@@ -1324,8 +1331,37 @@ function rimuoviLocale(id){
   saveDB();
   updateCnt();
 }
+
+// ── CONFERMA TEAM (solo responsabile in lista operai) ────────────
+var confermaTeamCallback = null;
+function serveConfermaTeam(){
+  return operai.length === 1;
+}
+function chiediConfermaTeam(callback){
+  confermaTeamCallback = callback;
+  el('conferma-overlay').classList.add('open');
+}
+function confermaTeamRisposta(procedi){
+  el('conferma-overlay').classList.remove('open');
+  if(procedi && confermaTeamCallback){
+    var cb = confermaTeamCallback;
+    confermaTeamCallback = null;
+    cb();
+  } else {
+    confermaTeamCallback = null;
+    if(!procedi){
+      showTab('nuovo');
+      setTimeout(function(){ el('op-new-nome') && el('op-new-nome').focus(); }, 150);
+    }
+  }
+}
+
 async function salvaESinc(){
   if(!valida())return;
+  if(serveConfermaTeam()){ chiediConfermaTeam(salvaESincEsegui); return; }
+  await salvaESincEsegui();
+}
+async function salvaESincEsegui(){
   var r=getForm();salvaMats();upsert(r);saveDB();updateCnt();editId=r.id;
   showAlert('Salvato. Invio su Drive...','info');
   var res=await uploadDrive(r);
@@ -1435,6 +1471,10 @@ function getFirmaDataUrl(id){
 }
 function apriRaccoltaFirme(){
   if(!validaBase())return;
+  if(serveConfermaTeam()){ chiediConfermaTeam(apriRaccoltaFirmeEsegui); return; }
+  apriRaccoltaFirmeEsegui();
+}
+function apriRaccoltaFirmeEsegui(){
   firmaRapportino=getForm();
   clearFirma('tecnico');clearFirma('cliente');
   firmaCorrente={tecnico:null,cliente:null};
@@ -1605,6 +1645,19 @@ function esportaCsv(r){
 <div class="toast-center" id="toast-center">
   <span class="toast-center-icon" id="toast-center-icon">✅</span>
   <div class="toast-center-msg" id="toast-center-msg"></div>
+</div>
+
+<!-- CONFERMA TEAM -->
+<div class="conferma-overlay" id="conferma-overlay">
+  <div class="conferma-box">
+    <div class="conferma-icon">👷</div>
+    <div class="conferma-msg">Hai inserito tutti i tuoi colleghi che hanno lavorato con te?</div>
+    <div class="conferma-sub">Nella lista operai c'è solo il responsabile. Se hai lavorato da solo va bene così, altrimenti aggiungi i colleghi prima di inviare.</div>
+    <div class="conferma-btns">
+      <button class="btn btn-accent" onclick="confermaTeamRisposta(true)">Sì, ho lavorato da solo</button>
+      <button class="btn" onclick="confermaTeamRisposta(false)">Aggiungi colleghi</button>
+    </div>
+  </div>
 </div>
 
 </body>
