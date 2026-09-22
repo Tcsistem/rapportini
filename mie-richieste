@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le mie richieste materiale</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f7fa;margin:0;padding:20px;color:#333}
+.container{max-width:900px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+h1{color:#1a73e8;margin:0;font-size:22px}
+.back{padding:9px 16px;border:1px solid #dadce0;border-radius:4px;color:#1a73e8;text-decoration:none;font-size:13px;background:#fff}
+.card{background:#fff;padding:22px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:16px}
+.name-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:5px;flex:1;min-width:220px}
+label{font-size:13px;font-weight:600;color:#555}
+input{padding:10px 12px;border:1px solid #dadce0;border-radius:4px;font-size:14px}
+input:focus{outline:none;border-color:#1a73e8;box-shadow:0 0 0 2px rgba(26,115,232,.15)}
+.btn{padding:10px 20px;border:none;border-radius:4px;cursor:pointer;font-size:14px;font-weight:500;background:#1a73e8;color:#fff}
+.btn:hover{background:#1557b0}
+.hint{font-size:12px;color:#888;margin-top:6px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}
+.stat{background:#fff;padding:14px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);text-align:center}
+.stat .n{font-size:22px;font-weight:700;color:#1a73e8}
+.stat .l{font-size:11px;color:#666;text-transform:uppercase;margin-top:2px}
+.stat.red .n{color:#c5221f}
+.stat.amber .n{color:#b06000}
+.stat.green .n{color:#137333}
+.req-item{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:16px 18px;margin-bottom:10px}
+.req-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.req-commessa{font-weight:600;font-size:15px}
+.req-meta{font-size:12px;color:#777;margin-top:2px}
+.badges{display:flex;gap:6px;flex-wrap:wrap}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase}
+.b-normale{background:#e6f4ea;color:#137333}
+.b-urgente{background:#fef7e0;color:#b06000}
+.b-urgentissimo{background:#fce8e6;color:#c5221f}
+.b-sede{background:#e8f0fe;color:#1a73e8}
+.b-cantiere{background:#fce8e6;color:#c5221f}
+.st-evadere{background:#fce8e6;color:#c5221f}
+.st-corso{background:#fef7e0;color:#b06000}
+.st-completato{background:#e6f4ea;color:#137333}
+.st-annullato{background:#f1f3f4;color:#5f6368}
+.req-materiali{margin-top:10px;font-size:13px;color:#444;border-top:1px solid #f1f3f4;padding-top:10px}
+.mat-line{padding:3px 0}
+.empty{text-align:center;padding:50px 20px;color:#888}
+.empty .icon{font-size:44px;margin-bottom:10px}
+.loading{text-align:center;padding:40px;color:#888}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>📋 Le mie richieste</h1>
+    <a href="materiale.html" class="back">← Nuova richiesta</a>
+  </header>
+
+  <div class="card">
+    <div class="name-row">
+      <div class="field">
+        <label>Il tuo nome (come inserito nella richiesta)</label>
+        <input type="text" id="nome" placeholder="Nome e cognome" onkeydown="if(event.key==='Enter')cerca()">
+      </div>
+      <button class="btn" onclick="cerca()">Cerca</button>
+    </div>
+    <div class="hint">Inserisci lo stesso nome che hai usato come "Richiedente" quando hai fatto la richiesta.</div>
+  </div>
+
+  <div id="risultati"></div>
+</div>
+
+<script>
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZfqQYlX5ESNT581caNx6sQHrfM-2S7ClcUHjEMWhOUsaz2ZJ3wuJ78SfKpoLPZ5P2hA/exec";
+const TOKEN = "tcs-2026-xK9pQ2mN";
+
+function formatDataOra(iso){
+  if(!iso) return '-';
+  const d=new Date(iso); if(isNaN(d)) return iso;
+  return d.toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function formatData(s){
+  if(!s) return '-';
+  const d=new Date(s); if(isNaN(d)) return s;
+  return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function escapeHtml(s){
+  if(s==null) return '';
+  return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function luogoLabel(val){
+  const v=(val||'SEDE').toString().trim().toUpperCase();
+  return v==='CANTIERE' ? '<span class="badge b-cantiere">🏗️ Cantiere</span>' : '<span class="badge b-sede">📦 Sede</span>';
+}
+function statoClass(s){
+  return {'Da evadere':'st-evadere','In corso':'st-corso','Completato':'st-completato','Annullato':'st-annullato'}[s] || 'st-evadere';
+}
+
+async function cerca(){
+  const nome = document.getElementById('nome').value.trim();
+  if(!nome){ alert('Inserisci il tuo nome per cercare le tue richieste.'); return; }
+  localStorage.setItem('mie_richieste_nome', nome);
+
+  const box = document.getElementById('risultati');
+  box.innerHTML = '<div class="loading">Ricerca in corso...</div>';
+
+  try{
+    const r = await fetch(APPS_SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'lista', token:TOKEN})});
+    const res = await r.json();
+    if(!res.success){ box.innerHTML = '<div class="empty">Errore: '+escapeHtml(res.message)+'</div>'; return; }
+
+    const mie = (res.dati||[]).filter(d => (d.Richiedente||'').trim().toLowerCase() === nome.toLowerCase());
+
+    if(!mie.length){
+      box.innerHTML = '<div class="empty"><div class="icon">📭</div>Nessuna richiesta trovata per "'+escapeHtml(nome)+'"</div>';
+      return;
+    }
+
+    const daEvadere = mie.filter(d=>(d.Stato||'Da evadere')==='Da evadere').length;
+    const inCorso = mie.filter(d=>d.Stato==='In corso').length;
+    const completati = mie.filter(d=>d.Stato==='Completato').length;
+
+    let html = '<div class="stats">'+
+      '<div class="stat"><div class="n">'+mie.length+'</div><div class="l">Totale</div></div>'+
+      '<div class="stat red"><div class="n">'+daEvadere+'</div><div class="l">Da evadere</div></div>'+
+      '<div class="stat amber"><div class="n">'+inCorso+'</div><div class="l">In corso</div></div>'+
+      '<div class="stat green"><div class="n">'+completati+'</div><div class="l">Completate</div></div>'+
+    '</div>';
+
+    mie.sort((a,b)=> new Date(b.Timestamp) - new Date(a.Timestamp));
+
+    html += mie.map(d => {
+      const urg = d.Urgenza || 'NORMALE';
+      const stato = d.Stato || 'Da evadere';
+      const luogo = d.LuogoConsegna || d['Luogo Consegna'] || 'SEDE';
+      const materiali = (d.Dettagli||'').split(' | ').filter(x=>x.trim());
+      return '<div class="req-item">'+
+        '<div class="req-top">'+
+          '<div><div class="req-commessa">'+escapeHtml(d.Commessa||'-')+' — '+escapeHtml(d.Cantiere||'-')+'</div>'+
+          '<div class="req-meta">Richiesta il '+formatDataOra(d.Timestamp)+(d['Consegna richiesta']?' · Consegna desiderata: '+formatData(d['Consegna richiesta']):'')+'</div></div>'+
+          '<div class="badges">'+
+            '<span class="badge b-'+urg.toLowerCase()+'">'+urg+'</span>'+
+            luogoLabel(luogo)+
+            '<span class="badge '+statoClass(stato)+'">'+escapeHtml(stato)+'</span>'+
+          '</div>'+
+        '</div>'+
+        (materiali.length ? '<div class="req-materiali">'+materiali.map(m=>'<div class="mat-line">• '+escapeHtml(m)+'</div>').join('')+'</div>' : '')+
+      '</div>';
+    }).join('');
+
+    box.innerHTML = html;
+  } catch(e){
+    box.innerHTML = '<div class="empty">Errore di rete: '+escapeHtml(e.message)+'</div>';
+  }
+}
+
+// Precompila il nome se già usato prima su questo dispositivo
+window.addEventListener('load', function(){
+  const salvato = localStorage.getItem('mie_richieste_nome');
+  if(salvato){
+    document.getElementById('nome').value = salvato;
+    cerca();
+  }
+});
+</script>
+</body>
+</html>
