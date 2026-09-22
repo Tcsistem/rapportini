@@ -48,16 +48,21 @@
   <div class="container">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:0">
       <h1 style="margin:0">⚡ Richiesta Materiale Elettrico</h1>
-      <a href="procedure/" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:#1a73e8;color:#fff;border-radius:4px;text-decoration:none;font-size:14px;font-weight:500">
-        📁 Manuale
-      </a>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a href="mie-richieste.html" style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:4px;text-decoration:none;font-size:14px;font-weight:500">
+          📋 Le mie richieste
+        </a>
+        <a href="procedure/" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:#1a73e8;color:#fff;border-radius:4px;text-decoration:none;font-size:14px;font-weight:500">
+          📁 Procedure
+        </a>
+      </div>
     </div>
     <div id="alert" class="alert"></div>
 
     <form id="form">
       <h2>Dati commessa</h2>
       <div class="grid">
-        <div class="field"><label>Commessa <span class="req">*</span></label><input type="text" id="commessa" required placeholder="es. 2026-001"></div>
+        <div class="field"><label>Commessa <span class="req">*</span></label><input type="text" id="commessa" required placeholder="es. 00227cen25" pattern="\d{5}cen\d{2}" maxlength="10" oninput="this.value=this.value.toLowerCase()" title="Formato richiesto: 5 numeri + cen + 2 numeri anno (es. 00227cen25)"></div>
         <div class="field"><label>Cantiere / Ubicazione <span class="req">*</span></label><input type="text" id="cantiere" required></div>
         <div class="field"><label>Richiedente <span class="req">*</span></label><input type="text" id="richiedente" required></div>
         <div class="field"><label>Email richiedente</label><input type="email" id="emailRichiedente"></div>
@@ -168,6 +173,14 @@
       });
       if(!ok||!mat.length){ alertMsg('Compila almeno una riga (descrizione + quantità)','error'); return; }
 
+      // Validazione formato commessa
+      const commessaVal = commessa.value.trim().toLowerCase();
+      const commessaRegex = /^\d{5}cen\d{2}$/;
+      if(!commessaRegex.test(commessaVal)){
+        alertMsg('Formato commessa non valido. Usa: 5 numeri + cen + 2 numeri anno (es. 00227cen25)','error');
+        commessa.focus(); return;
+      }
+
       const dati={
         token: TOKEN,
         commessa:commessa.value.trim(), cantiere:cantiere.value.trim(),
@@ -188,7 +201,7 @@
         document.getElementById('loading').classList.remove('show');
         btnInvia.disabled=false;
         alertMsg(r.message, r.success?'success':'error');
-        if(r.success){ showToast('✓ Richiesta inviata con successo!'); resetForm(); }
+        if(r.success){ try{ localStorage.setItem('mie_richieste_nome', dati.richiedente); }catch(e){} showToast('✓ Richiesta inviata con successo!'); resetForm(); }
       })
       .catch(err => {
         document.getElementById('loading').classList.remove('show');
