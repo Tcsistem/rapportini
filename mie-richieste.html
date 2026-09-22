@@ -105,11 +105,11 @@ async function cerca(){
   box.innerHTML = '<div class="loading">Ricerca in corso...</div>';
 
   try{
-    const r = await fetch(APPS_SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'lista', token:TOKEN})});
+    const r = await fetch(APPS_SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'listaPerNome', richiedente:nome, token:TOKEN})});
     const res = await r.json();
     if(!res.success){ box.innerHTML = '<div class="empty">Errore: '+escapeHtml(res.message)+'</div>'; return; }
 
-    const mie = (res.dati||[]).filter(d => (d.Richiedente||'').trim().toLowerCase() === nome.toLowerCase());
+    const mie = res.dati || [];
 
     if(!mie.length){
       box.innerHTML = '<div class="empty"><div class="icon">📭</div>Nessuna richiesta trovata per "'+escapeHtml(nome)+'"</div>';
