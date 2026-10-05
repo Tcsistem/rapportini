@@ -128,7 +128,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .b-sync{background:var(--blue-bg);color:var(--blue)}
 .alert{padding:13px 16px;border-radius:var(--radius-sm);font-size:14px;margin-bottom:14px;
   display:none;border:1px solid transparent}
-.alert.show{display:block}
+.alert.show{display:block;position:fixed;top:10px;left:12px;right:12px;max-width:620px;margin:0 auto;z-index:10002;box-shadow:0 6px 24px rgba(0,0,0,.22);font-weight:500}
 .toast-center{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.8);
   background:#1a1a18;color:#fff;padding:28px 32px;border-radius:16px;z-index:9999;
   box-shadow:0 8px 40px rgba(0,0,0,.35);text-align:center;min-width:260px;max-width:85vw;
@@ -141,6 +141,23 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .conferma-msg{font-size:15px;font-weight:600;margin-bottom:6px;line-height:1.4}
 .conferma-sub{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.4}
 .conferma-btns{display:flex;flex-direction:column;gap:8px}
+.esito-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10001;align-items:center;justify-content:center;padding:20px}
+.esito-overlay.open{display:flex}
+.esito-box{background:var(--surface);border-radius:16px;padding:28px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 12px 44px rgba(0,0,0,.3)}
+.esito-icon{font-size:56px;line-height:1;margin-bottom:12px}
+.esito-spin{width:48px;height:48px;border:5px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:esitoSpin 1s linear infinite;margin:0 auto 16px}
+@keyframes esitoSpin{to{transform:rotate(360deg)}}
+.esito-title{font-size:19px;font-weight:700;margin-bottom:8px}
+.esito-title.ok{color:var(--green)}
+.esito-title.err{color:var(--red)}
+.esito-det{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:18px}
+.esito-det b{color:var(--text)}
+.esito-btns{display:flex;flex-direction:column;gap:8px}
+.lista-sez{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;color:var(--text2);margin:18px 2px 8px;gap:10px}
+.rap-sent{font-size:12px;color:var(--green);margin-top:3px}
+.rap-sent.warn{color:var(--red)}
+.pending-banner{display:none;background:#fff4e0;color:#8a5a00;border-bottom:1px solid #f0d9a8;padding:10px 16px;font-size:13px;font-weight:500;text-align:center;cursor:pointer}
+.pending-banner.show{display:block}
 .toast-center-icon{font-size:48px;margin-bottom:12px;display:block}
 .toast-center-msg{font-size:17px;font-weight:600;line-height:1.4}
 .alert-ok{background:var(--green-bg);color:var(--green);border-color:#b8ddb8}
@@ -328,13 +345,14 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 
 <nav class="nav">
   <button class="nav-tab active" onclick="showTab('nuovo')">Nuovo</button>
-  <button class="nav-tab" onclick="showTab('lista')">Bozze <span class="nav-badge" id="cnt">0</span></button>
+  <button class="nav-tab" onclick="showTab('lista')">Bozze/Inviati <span class="nav-badge" id="cnt">0</span></button>
 
   <button class="nav-tab" onclick="showTab('anteprima')">Archivio</button>
   <button class="nav-tab" onclick="showTab('sync')">Sync</button>
   <button class="nav-tab" onclick="showTab('info')">Info</button>
   <button class="nav-tab" onclick="showTab('geobadge')">GeoBadge</button>
 </nav>
+<div class="pending-banner" id="pending-banner" onclick="showTab('lista')"></div>
 
 <div class="main">
 <div id="alert" class="alert"></div>
@@ -929,7 +947,18 @@ async function autoNum(){
     }
   }
 }
-function updateCnt(){var c=el('cnt');if(c)c.textContent=rapportini.length}
+function updateCnt(){
+  var pend=rapportini.filter(function(r){return !r.syncedNas}).length;
+  var c=el('cnt');
+  if(c){c.textContent=pend;c.style.background=pend?'#f4b740':'';c.style.color=pend?'#4a3000':''}
+  var b=el('pending-banner');
+  if(b){
+    if(pend){
+      b.textContent='⚠️ Hai '+pend+(pend===1?' rapportino non ancora inviato':' rapportini non ancora inviati')+' — tocca per vedere';
+      b.classList.add('show');
+    }else{b.classList.remove('show')}
+  }
+}
 
 // ── AUTOCOMPLETE ──────────────────────────────────────
 function acMat(input){
@@ -1233,21 +1262,38 @@ function salvaLocale(){
 }
 
 // ── LISTA BOZZE ───────────────────────────────────────
+function cardRap(r){
+  var df=r.data?new Date(r.data+'T00:00:00').toLocaleDateString('it-IT'):'—';
+  var pct=parseInt(r.stato)||0;
+  var stB=pct===100?'<span class="badge b-ok">Completato</span>':'<span class="badge b-bozza">'+pct+'%</span>';
+  var fB=r.firmato?'<span class="badge b-ok">✍ Firmato</span>':'';
+  var sent='';
+  if(r.syncedNas){
+    if(r.verificato===false)sent='<div class="rap-sent warn">⚠️ Inviato il '+fmtOraInvio(r.syncedAt)+' ma non risulta nel sistema: aprilo e reinvialo</div>';
+    else if(r.verificato===true)sent='<div class="rap-sent">✓ Inviato il '+fmtOraInvio(r.syncedAt)+' · ricevuto dal sistema</div>';
+    else sent='<div class="rap-sent">✓ Inviato il '+fmtOraInvio(r.syncedAt)+'</div>';
+  }
+  return'<div class="rap-card" onclick="caricaRap('+r.id+')">'+
+    '<div class="rap-info"><h3>'+esc(r.cliente||'(nessun cliente)')+stB+fB+'</h3>'+
+    '<p>'+esc(r.tipo||'—')+' · '+df+' · '+esc(r.commessa||'—')+' · '+esc(r.tecnico||'—')+'</p>'+sent+'</div>'+
+    '<div class="rap-meta"><span class="tot">'+fmt(r.totLav||0)+'h</span><span class="num">N. '+esc(r.numero)+'</span></div>'+
+  '</div>';
+}
 function renderLista(){
   var w=el('lista-wrap');
-  if(!rapportini.length){w.innerHTML='<div class="empty">Nessuna bozza salvata.</div>';return}
-  w.innerHTML=rapportini.map(function(r){
-    var df=r.data?new Date(r.data+'T00:00:00').toLocaleDateString('it-IT'):'—';
-    var pct=parseInt(r.stato)||0;
-    var stB=pct===100?'<span class="badge b-ok">Completato</span>':'<span class="badge b-bozza">'+pct+'%</span>';
-    var sB=r.syncedNas?'<span class="badge b-sync">Drive ✓</span>':'';
-    var fB=r.firmato?'<span class="badge b-ok">✍ Firmato</span>':'';
-    return'<div class="rap-card" onclick="caricaRap('+r.id+')">'+
-      '<div class="rap-info"><h3>'+esc(r.cliente||'(nessun cliente)')+stB+sB+fB+'</h3>'+
-      '<p>'+esc(r.tipo||'—')+' · '+df+' · '+esc(r.commessa||'—')+' · '+esc(r.tecnico||'—')+'</p></div>'+
-      '<div class="rap-meta"><span class="tot">'+fmt(r.totLav||0)+'h</span><span class="num">N. '+esc(r.numero)+'</span></div>'+
-    '</div>';
-  }).join('');
+  if(!rapportini.length){w.innerHTML='<div class="empty">Nessun rapportino salvato.</div>';return}
+  var daInv=rapportini.filter(function(r){return !r.syncedNas});
+  var inv=rapportini.filter(function(r){return r.syncedNas}).sort(function(a,b){return String(b.syncedAt||'').localeCompare(String(a.syncedAt||''))});
+  var h='';
+  if(daInv.length){
+    h+='<div class="lista-sez"><span>⏳ Da inviare ('+daInv.length+')</span>'+
+       '<button class="btn" style="padding:6px 12px;font-size:12px" onclick="sincTutti()">Invia tutti</button></div>'+
+       daInv.map(cardRap).join('');
+  }
+  h+='<div class="lista-sez"><span>✅ Inviati ('+inv.length+')</span>'+
+     (inv.length?'<button class="btn" style="padding:6px 12px;font-size:12px" onclick="verificaInvii()">🔄 Verifica invii</button>':'')+'</div>';
+  h+=inv.length?inv.map(cardRap).join(''):'<div class="empty">Nessun rapportino inviato di recente.</div>';
+  w.innerHTML=h;
 }
 function caricaRap(id){
   var r=rapportini.find(function(x){return x.id===id});if(!r)return;
@@ -1319,12 +1365,17 @@ async function testConn(){
   }catch(e){setDot('err');showAlert('Script non raggiungibile.','err')}
 }
 async function uploadDrive(r){
+  var ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
+  var timer=ctrl?setTimeout(function(){ctrl.abort()},60000):null;
   try{
-    var res=await fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(r)});
+    var opts={method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(r)};
+    if(ctrl)opts.signal=ctrl.signal;
+    var res=await fetch(SCRIPT_URL,opts);
     var d=await res.json();
     if(d.ok){return d.fileId||true}
     return false;
   }catch(e){return false}
+  finally{if(timer)clearTimeout(timer)}
 }
 function rimuoviLocale(id){
   rapportini = rapportini.filter(function(x){ return x.id !== id; });
@@ -1356,23 +1407,116 @@ function confermaTeamRisposta(procedi){
   }
 }
 
+// ── ESITO INVIO (popup persistente) ───────────────────
+var invioInCorso=false, esitoRetryRap=null;
+function fmtOraInvio(iso){
+  var d=iso?new Date(iso):new Date();
+  if(isNaN(d))d=new Date();
+  return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'})+' alle '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+}
+function dettRap(r){
+  return r?'<b>N. '+esc(r.numero||'—')+'</b><br>'+esc(r.cliente||'')+(r.commessa?' · '+esc(r.commessa):'')+'<br>':'';
+}
+function mostraEsito(stato,r,firmato){
+  var ic=el('esito-icon-wrap'),ti=el('esito-title'),de=el('esito-det'),bt=el('esito-btns');
+  ti.className='esito-title';
+  if(stato==='invio'){
+    ic.innerHTML='<div class="esito-spin"></div>';
+    ti.textContent='Invio in corso…';
+    de.innerHTML=dettRap(r)+'Attendi qualche secondo, non chiudere la pagina.';
+    bt.innerHTML='';
+  }else if(stato==='ok'){
+    ic.innerHTML='<div class="esito-icon">✅</div>';
+    ti.textContent=firmato?'Rapportino firmato e inviato!':'Rapportino inviato!';
+    ti.className='esito-title ok';
+    de.innerHTML=dettRap(r)+'Ricevuto correttamente il '+fmtOraInvio(r.syncedAt)+'.<br>Lo trovi nell’elenco <b>Inviati</b>.';
+    bt.innerHTML='<button class="btn btn-accent" onclick="chiudiEsito()">OK</button>';
+  }else if(stato==='riepilogo'){
+    ic.innerHTML='<div class="esito-icon">'+(r.err?'⚠️':'✅')+'</div>';
+    ti.textContent=r.err?'Invio completato con errori':'Tutti i rapportini inviati!';
+    ti.className='esito-title '+(r.err?'err':'ok');
+    de.innerHTML='<b>'+r.ok+'</b> inviati'+(r.err?' · <b>'+r.err+'</b> non inviati (restano nelle bozze, riprova più tardi)':'')+'.';
+    bt.innerHTML='<button class="btn btn-accent" onclick="chiudiEsito()">OK</button>';
+  }else if(stato==='verifica'){
+    ic.innerHTML='<div class="esito-icon">'+(r.mancanti?'⚠️':'✅')+'</div>';
+    ti.textContent=r.mancanti?'Alcuni rapportini non risultano':'Tutto in ordine!';
+    ti.className='esito-title '+(r.mancanti?'err':'ok');
+    de.innerHTML=r.mancanti
+      ?'<b>'+r.mancanti+'</b> su '+r.tot+' non risultano presenti nel sistema.<br>Sono evidenziati in rosso nell’elenco: aprili e reinviali.<br>(Se li ha eliminati l’ufficio, ignora il messaggio.)'
+      :'Tutti i <b>'+r.tot+'</b> rapportini inviati risultano ricevuti dal sistema.';
+    bt.innerHTML='<button class="btn btn-accent" onclick="chiudiEsito()">OK</button>';
+  }else{
+    ic.innerHTML='<div class="esito-icon">⚠️</div>';
+    ti.textContent='Rapportino NON inviato';
+    ti.className='esito-title err';
+    de.innerHTML=dettRap(r)+'Non è stato possibile inviarlo (connessione assente o server occupato).<br>Il rapportino è <b>salvato sul telefono</b>: riprova ora oppure più tardi dalla scheda Bozze/Inviati.';
+    bt.innerHTML='<button class="btn btn-accent" onclick="riprovaInvio()">Riprova ora</button><button class="btn" onclick="chiudiEsito()">Chiudi</button>';
+  }
+  el('esito-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function chiudiEsito(){
+  el('esito-overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+async function eseguiInvio(r,firmato){
+  if(invioInCorso)return false;
+  invioInCorso=true;
+  esitoRetryRap=r;
+  mostraEsito('invio',r,firmato);
+  var res=false;
+  try{res=await uploadDrive(r)}catch(e){res=false}
+  invioInCorso=false;
+  if(res){
+    r.syncedNas=true;r.syncedAt=new Date().toISOString();r.verificato=true;
+    if(res!==true)r.driveFileId=res;
+    upsert(r);saveDB();updateCnt();
+    if(editId===r.id){resetForm();showTab('nuovo');window.scrollTo(0,0)}
+    renderLista();renderSync();
+    mostraEsito('ok',r,firmato);
+    return true;
+  }
+  upsert(r);saveDB();updateCnt();renderLista();renderSync();
+  mostraEsito('err',r,firmato);
+  return false;
+}
+async function riprovaInvio(){
+  var r=esitoRetryRap;
+  if(!r){chiudiEsito();return}
+  await eseguiInvio(r,r.firmato);
+}
+async function verificaInvii(){
+  var inv=rapportini.filter(function(r){return r.syncedNas});
+  if(!inv.length)return;
+  showAlert('Verifica in corso…','info');
+  try{
+    var res=await fetch(SCRIPT_URL+'?action=list&_dc='+Date.now());
+    var d=await res.json();
+    if(!d.ok)throw new Error(d.error||'errore');
+    var presenti={};
+    (d.rapportini||[]).forEach(function(x){presenti[String(x.numero)]=true});
+    var mancanti=0;
+    inv.forEach(function(r){
+      var trovato=!!presenti[String(r.numero)];
+      r.verificato=trovato;
+      if(!trovato)mancanti++;
+    });
+    saveDB();renderLista();
+    mostraEsito('verifica',{tot:inv.length,mancanti:mancanti});
+  }catch(e){
+    showAlert('Impossibile verificare ora: controlla la connessione.','err');
+  }
+}
+
 async function salvaESinc(){
   if(!valida())return;
   if(serveConfermaTeam()){ chiediConfermaTeam(salvaESincEsegui); return; }
   await salvaESincEsegui();
 }
 async function salvaESincEsegui(){
+  if(invioInCorso)return;
   var r=getForm();salvaMats();upsert(r);saveDB();updateCnt();editId=r.id;
-  showAlert('Salvato. Invio su Drive...','info');
-  var res=await uploadDrive(r);
-  if(res){
-    r.syncedNas=true;r.syncedAt=new Date().toISOString();
-    if(res!==true)r.driveFileId=res;
-    upsert(r);saveDB();
-    showToastCenter('Rapportino inviato\nsu Google Drive!','✅');
-    resetForm();
-  }
-  else showAlert('Salvato in locale. Errore Drive — riprova dalla scheda Sync.','err');
+  await eseguiInvio(r,false);
 }
 function renderSync(){
   var w=el('sync-list');
@@ -1388,15 +1532,7 @@ function renderSync(){
 }
 async function sincUno(id){
   var r=rapportini.find(function(x){return x.id===id});if(!r)return;
-  var res=await uploadDrive(r);
-  if(res){
-    r.syncedNas=true;r.syncedAt=new Date().toISOString();
-    if(res!==true)r.driveFileId=res;
-    upsert(r);saveDB();
-    showAlert('Inviato su Drive.','ok');
-  }
-  else showAlert('Errore invio.','err');
-  renderSync();
+  await eseguiInvio(r,!!r.firmato);
 }
 function pulisciSincronizzati(silenzioso){
   var prima = rapportini.length;
@@ -1422,14 +1558,20 @@ function pulisciSincronizzati(silenzioso){
   return rimossi;
 }
 async function sincTutti(){
+  if(invioInCorso)return;
   var p=rapportini.filter(function(r){return!r.syncedNas});
   if(!p.length){showAlert('Tutti già sincronizzati.','ok');return}
+  invioInCorso=true;
+  mostraEsito('invio',null);
   var ok=0,err=0;
   for(var i=0;i<p.length;i++){
-    var res=await uploadDrive(p[i]);
-    if(res){p[i].syncedNas=true;p[i].syncedAt=new Date().toISOString();if(res!==true)p[i].driveFileId=res;ok++}else err++;
+    var res=false;
+    try{res=await uploadDrive(p[i])}catch(e){res=false}
+    if(res){p[i].syncedNas=true;p[i].syncedAt=new Date().toISOString();p[i].verificato=true;if(res!==true)p[i].driveFileId=res;ok++}else err++;
   }
-  saveDB();showAlert('Sync: '+ok+' inviati, '+err+' errori.',err?'err':'ok');renderSync();
+  invioInCorso=false;
+  saveDB();updateCnt();renderLista();renderSync();
+  mostraEsito('riepilogo',{ok:ok,err:err});
 }
 
 // ── FIRMA ─────────────────────────────────────────────
@@ -1494,6 +1636,7 @@ function stampaPdfFirma(){
   setTimeout(function(){window.print()},400);
 }
 async function firmaESalva(){
+  if(invioInCorso)return;
   var ft=getFirmaDataUrl('tecnico');
   var fc=getFirmaDataUrl('cliente');
   if(!ft){showAlert('La firma del tecnico è obbligatoria.','err');return}
@@ -1505,17 +1648,7 @@ async function firmaESalva(){
   r.firmato=true;
   salvaMats();upsert(r);saveDB();updateCnt();editId=r.id;
   chiudiFirma();
-  showAlert('Firme acquisite. Invio su Drive...','info');
-  var res=await uploadDrive(r);
-  if(res){
-    r.syncedNas=true;r.syncedAt=new Date().toISOString();
-    if(res!==true)r.driveFileId=res;
-    upsert(r);saveDB();
-    chiudiFirma();resetForm();showTab('nuovo');window.scrollTo(0,0);
-    showToastCenter('Rapportino firmato\ne inviato su Drive!','✅');
-  }else{
-    showAlert('Firme salvate in locale. Errore Drive.','err');
-  }
+  await eseguiInvio(r,true);
 }
 
 // ── IDEE E SUGGERIMENTI ──────────────────────────────
@@ -1611,12 +1744,7 @@ function showToastCenter(msg,icon){
   setTimeout(function(){t.classList.remove('show');},2800);
 }
 
-function showAlert(msg,type){
-  var a=el('alert-bar');if(!a)return;
-  a.textContent=msg;
-  a.className='alert alert-'+type+' show';
-  setTimeout(function(){a.classList.remove('show');},3500);
-}
+
 
 // ── CSV ──────────────────────────────────────────────
 function csvR(){
@@ -1645,6 +1773,16 @@ function esportaCsv(r){
 <div class="toast-center" id="toast-center">
   <span class="toast-center-icon" id="toast-center-icon">✅</span>
   <div class="toast-center-msg" id="toast-center-msg"></div>
+</div>
+
+<!-- ESITO INVIO -->
+<div class="esito-overlay" id="esito-overlay">
+  <div class="esito-box">
+    <div id="esito-icon-wrap"></div>
+    <div class="esito-title" id="esito-title"></div>
+    <div class="esito-det" id="esito-det"></div>
+    <div class="esito-btns" id="esito-btns"></div>
+  </div>
 </div>
 
 <!-- CONFERMA TEAM -->
