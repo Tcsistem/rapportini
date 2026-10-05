@@ -658,7 +658,12 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzKHF52x6L9ZnZHxVq1i
 // ── STORAGE POLYFILL ───────────────────────────────────
 (function(){
   var _m={};
-  function ok(){try{localStorage.setItem('_t','1');localStorage.removeItem('_t');return true}catch(e){return false}}
+  function ok(){try{localStorage.setItem('_t','1');localStorage.removeItem('_t');return true}catch(e){
+    // Memoria PIENA (non assente): il localStorage vero funziona ancora in lettura e si puo liberare.
+    // Non va sostituito con quello finto, altrimenti i rapportini salvati sembrano spariti.
+    var piena=e&&(e.name==='QuotaExceededError'||e.name==='NS_ERROR_DOM_QUOTA_REACHED'||e.code===22||e.code===1014);
+    if(piena){try{localStorage.getItem('_t');return true}catch(e2){}}
+    return false}}
   if(!ok()){var ls={getItem:function(k){return _m[k]!=null?_m[k]:null},setItem:function(k,v){_m[k]=String(v)},removeItem:function(k){delete _m[k]}};
     try{Object.defineProperty(window,'localStorage',{value:ls})}catch(e){window.localStorage=ls}}
 })();
@@ -854,6 +859,7 @@ function importaInRapportino() {
     const d=localStorage.getItem(K_DAT); if(d) rapportini=JSON.parse(d);
     const m=localStorage.getItem(K_MATS); if(m) materialiDB=JSON.parse(m);
   }catch(e){}
+  try{alleggerisciLocale()}catch(e){}
   setToday(); autoNum(); updateCnt(); aggiornaInfoUrl();
   await caricaConfig();
   await autoNum();
@@ -1029,24 +1035,6 @@ function filtraTecOverlay(q) {
     return "<div class=\"ac-overlay-item\" onclick=\"selTecOverlay('"+esc(n)+"')\">" + esc(n) + "</div>";
   }).join("");
 }
-function selTecOverlay(val) {
-  var inp = el('f-tecnico');
-  if(inp) inp.value = val.toUpperCase();
-  chiudiTecOverlay();
-  // Aggiunge il tecnico nella lista operai se non gia presente
-  var giaPresente = operai.some(function(o){
-    return o.nome.toUpperCase() === val.toUpperCase();
-  });
-  if(!giaPresente){
-    operai.unshift({
-      id: Date.now()+Math.random(),
-      nome: val.toUpperCase(),
-      oreLav: 0, oreViag: 0, oreStr: 0
-    });
-    renderOp();
-  }
-}
-
 function posizionaDropdown(inp, list) {
   var rect = inp.getBoundingClientRect();
   var altezzaDropdown = Math.min(200, window.innerHeight * 0.35);
@@ -1122,21 +1110,10 @@ function tecnicoInputHandler(input){
   list.classList.add("open");
 }
 function selTecnico(val){
-  var inp = el('f-tecnico');
-  if(inp){ inp.value = val; }
+  var inp=el('f-tecnico');
+  if(inp)inp.value=nomeUp(val);
   closeAc('tec-ac');
-  // Aggiunge automaticamente il tecnico nella lista operai se non gia presente
-  var giaPresente = operai.some(function(o){
-    return o.nome.toUpperCase() === val.toUpperCase();
-  });
-  if(!giaPresente){
-    operai.unshift({
-      id: Date.now()+Math.random(),
-      nome: val.toUpperCase(),
-      oreLav: 0, oreViag: 0, oreStr: 0
-    });
-    renderOp();
-  }
+  impostaResponsabile(val);
 }
 function validaTecnico(){
   var nome=(v('f-tecnico')||'').toUpperCase();
@@ -1173,6 +1150,10 @@ function addOp(){
   var nome=(v('op-new-nome')||'').toUpperCase();if(!nome){apriOpOverlay();return;}
   var src=(operaiPred||[]).map(function(n){return n.toUpperCase()});
   if(!src.includes(nome)){showAlert('Seleziona un operaio dalla lista.','err');el('op-new-nome').value='';return;}
+  if(operai.some(function(o){return nomeUp(o.nome)===nome})){
+    showAlert(nome+(nome===responsabileCorrente?' è il responsabile ed è già nell’elenco: inserisci le sue ore nella riga bloccata.':' è già nell’elenco operai.'),'err');
+    el('op-new-nome').value='';return;
+  }
   var lav=parseFloat(el('op-new-lav').value)||0;
   var str=parseFloat(el('op-new-str').value)||0;
   var sab=parseFloat(el('op-new-sab').value)||0;
@@ -1183,9 +1164,32 @@ function addOp(){
   el('op-new-sab').value='';el('op-new-fest').value='';el('op-new-viag').value='';
   el('op-new-nome').focus();renderOp();
 }
-function rmOp(id){operai=operai.filter(function(o){return o.id!==id});renderOp()}
+// ── RESPONSABILE: riga bloccata nella lista operai (solo le ore sono modificabili) ──
+var responsabileCorrente='';
+function nomeUp(s){return String(s||'').toUpperCase().trim()}
+function eResponsabile(o){return !!responsabileCorrente&&nomeUp(o.nome)===responsabileCorrente}
+function haOre(o){return ((o.oreLav||0)+(o.oreStr||0)+(o.oreSab||0)+(o.oreFest||0)+(o.oreViag||0))>0}
+function impostaResponsabile(nome){
+  nome=nomeUp(nome);
+  var prec=responsabileCorrente;
+  if(prec&&prec!==nome){
+    // il responsabile precedente, se non ha ore inserite, era solo il segnaposto: lo tolgo.
+    // Se invece ha ore, resta come operaio normale (non piu bloccato).
+    operai=operai.filter(function(o){return nomeUp(o.nome)!==prec||haOre(o)});
+  }
+  responsabileCorrente=nome;
+  var gia=operai.find(function(o){return nomeUp(o.nome)===nome});
+  if(gia){operai=[gia].concat(operai.filter(function(o){return o!==gia}))}
+  else{operai.unshift({id:Date.now()+Math.random(),nome:nome,oreLav:0,oreStr:0,oreSab:0,oreFest:0,oreViag:0})}
+  renderOp();
+}
+function rmOp(id){
+  var o=operai.find(function(x){return x.id===id});
+  if(o&&eResponsabile(o))return;   // il responsabile non si puo togliere dalla lista
+  operai=operai.filter(function(x){return x.id!==id});renderOp();
+}
 function syncOp(id,f,val){var o=operai.find(function(o){return o.id===id});if(o){o[f]=parseFloat(val)||0;aggTot()}}
-function syncOpNome(id,val){var o=operai.find(function(o){return o.id===id});if(o)o.nome=val}
+function syncOpNome(id,val){var o=operai.find(function(o){return o.id===id});if(o&&!eResponsabile(o))o.nome=val}
 function aggTot(){
   if(el('tot-lav')) el('tot-lav').textContent=fmt(operai.reduce(function(s,o){return s+(o.oreLav||0)},0));
   if(el('tot-str')) el('tot-str').textContent=fmt(operai.reduce(function(s,o){return s+(o.oreStr||0)},0));
@@ -1195,14 +1199,17 @@ function aggTot(){
 }
 function renderOp(){
   el('op-body').innerHTML=operai.map(function(o){
+    var lock=eResponsabile(o);
     return '<tr>'+
-    '<td class="tc-desc"><input type="text" value="'+esc(o.nome)+'" onchange="syncOpNome('+o.id+',this.value)"></td>'+
+    '<td class="tc-desc">'+(lock
+      ?'<input type="text" value="'+esc(o.nome)+'" readonly tabindex="-1" title="Responsabile: il nome non si può modificare" style="background:var(--surface2);font-weight:600;color:var(--text)">'
+      :'<input type="text" value="'+esc(o.nome)+'" onchange="syncOpNome('+o.id+',this.value)">')+'</td>'+
     '<td class="tc-sm"><input type="number" value="'+(o.oreLav||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',&quot;oreLav&quot;,this.value)" placeholder="0"></td>'+
     '<td class="tc-sm"><input type="number" value="'+(o.oreStr||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',&quot;oreStr&quot;,this.value)" placeholder="0"></td>'+
     '<td class="tc-sm"><input type="number" value="'+(o.oreSab||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',&quot;oreSab&quot;,this.value)" placeholder="0"></td>'+
     '<td class="tc-sm"><input type="number" value="'+(o.oreFest||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',&quot;oreFest&quot;,this.value)" placeholder="0"></td>'+
     '<td class="tc-sm"><input type="number" value="'+(o.oreViag||'')+'" min="0" step="0.5" onchange="syncOp('+o.id+',&quot;oreViag&quot;,this.value)" placeholder="0"></td>'+
-    '<td class="tc-xs"><button class="btn-icon rm" onclick="rmOp('+o.id+')">✕</button></td>'+
+    '<td class="tc-xs">'+(lock?'<span title="Responsabile" style="font-size:15px">🔒</span>':'<button class="btn-icon rm" onclick="rmOp('+o.id+')">✕</button>')+'</td>'+
     '</tr>';
   }).join('');
   aggTot();
@@ -1222,14 +1229,14 @@ function getForm(){
     tecnico:(v('f-tecnico')||'').toUpperCase().trim(),tipo:v('f-tipo'),stato:v('f-stato'),
     descrizione:v('f-desc'),note:v('f-note'),
     materiali:materiali.slice(),operai:operai.slice(),totLav:totLav,totStr:totStr,totSab:totSab,totFest:totFest,totViag:totViag,
-    azienda:cfg.azienda,piva:cfg.piva,tel:cfg.tel,email:cfg.email,logo:cfg.logo||'',
+    azienda:cfg.azienda,piva:cfg.piva,tel:cfg.tel,email:cfg.email,
     driveFileId:driveFileId,syncedNas:false,createdAt:new Date().toISOString()};
 }
 function resetForm(){
   editId=null;
   ['f-num','f-cliente','f-commessa','f-indirizzo','f-tecnico','f-desc','f-note'].forEach(function(id){var e=el(id);if(e)e.value=''});
   el('f-tipo').value='';el('f-stato').value='0';el('f-data').value='';
-  materiali=[];operai=[];firmaCorrente={tecnico:null,cliente:null};
+  materiali=[];operai=[];responsabileCorrente='';firmaCorrente={tecnico:null,cliente:null};
   renderMat();renderOp();setToday();autoNum();window.scrollTo(0,0);
 }
 function validaBase(){
@@ -1249,11 +1256,34 @@ function valida(){
   return true;
 }
 function upsert(r){var i=rapportini.findIndex(function(x){return x.id===r.id});if(i>=0)rapportini[i]=r;else rapportini.unshift(r)}
-function saveDB(){localStorage.setItem(K_DAT,JSON.stringify(rapportini))}
+// Il salvataggio locale e solo una copia di sicurezza: non deve MAI impedire un invio.
+function saveDB(){
+  var serial=function(){return JSON.stringify(rapportini,function(k,v){return k==='logo'?undefined:v})};
+  try{localStorage.setItem(K_DAT,serial());return true}catch(e){}
+  // memoria del telefono piena: libera spazio dai rapportini gia inviati (prima i piu vecchi)
+  try{
+    var inviati=rapportini.filter(function(r){return r.syncedNas}).sort(function(a,b){return String(a.syncedAt||'').localeCompare(String(b.syncedAt||''))});
+    while(inviati.length){
+      var da=inviati.shift();
+      rapportini=rapportini.filter(function(x){return x!==da});
+      try{localStorage.setItem(K_DAT,serial());return true}catch(e2){}
+    }
+  }catch(e3){}
+  return false;
+}
+// Toglie il peso inutile dai rapportini gia salvati (logo ripetuto; firme dei gia inviati)
+function alleggerisciLocale(){
+  var cambiato=false;
+  rapportini.forEach(function(r){
+    if(r.logo){delete r.logo;cambiato=true}
+    if(r.syncedNas&&r.firme){delete r.firme;cambiato=true}
+  });
+  if(cambiato)saveDB();
+}
 function salvaMats(){
   materiali.forEach(function(m){var d=m.desc.trim();if(d&&!materialiDB.includes(d))materialiDB.push(d)});
   materialiDB.sort(function(a,b){return a.localeCompare(b,'it')});
-  localStorage.setItem(K_MATS,JSON.stringify(materialiDB));
+  try{localStorage.setItem(K_MATS,JSON.stringify(materialiDB))}catch(e){}
 }
 function salvaLocale(){
   if(!valida())return;
@@ -1305,6 +1335,7 @@ function caricaRap(id){
   el('f-desc').value=r.descrizione;el('f-note').value=r.note;
   materiali=(r.materiali||[]).map(function(m){return Object.assign({},m)});
   operai=(r.operai||[]).map(function(o){return Object.assign({},o)});
+  responsabileCorrente=nomeUp(r.tecnico);
   firmaCorrente=r.firme?{tecnico:r.firme.tecnico||null,cliente:r.firme.cliente||null}:{tecnico:null,cliente:null};
   renderMat();renderOp();showTab('nuovo');window.scrollTo(0,0);
 }
@@ -1316,7 +1347,7 @@ function mostraAnteprima(){
   var df=r.data?new Date(r.data+'T00:00:00').toLocaleDateString('it-IT'):'—';
   var rM=r.materiali.map(function(m){return'<tr><td>'+esc(m.desc)+'</td><td style="text-align:center">'+esc(m.qty)+'</td><td style="text-align:center">'+esc(m.unit)+'</td></tr>'}).join('');
   var rO=r.operai.map(function(o){return'<tr><td>'+esc(o.nome)+'</td><td style="text-align:center">'+fmt(o.oreLav||0)+'</td><td style="text-align:center">'+fmt(o.oreStr||0)+'</td><td style="text-align:center">'+fmt(o.oreSab||0)+'</td><td style="text-align:center">'+fmt(o.oreFest||0)+'</td><td style="text-align:center">'+fmt(o.oreViag||0)+'</td></tr>'}).join('');
-  var logoHtml = r.logo ? '<img src="'+r.logo+'" style="height:60px;max-width:180px;object-fit:contain;display:block;margin-bottom:4px">' : '';
+  var logoHtml = cfg.logo ? '<img src="'+cfg.logo+'" style="height:60px;max-width:180px;object-fit:contain;display:block;margin-bottom:4px">' : '';
   var h='<div class="pr-header">'+
     '<div>'+logoHtml+'<div class="pr-azienda">'+esc(r.azienda||'Azienda')+'</div>'+
     '<div class="pr-sub">'+esc([r.piva,r.tel,r.email].filter(Boolean).join(' · '))+'</div></div>'+
@@ -1364,17 +1395,28 @@ async function testConn(){
     else{setDot('err');showAlert('Errore: '+(d.error||''),'err')}
   }catch(e){setDot('err');showAlert('Script non raggiungibile.','err')}
 }
+var ultimoErroreInvio='';
 async function uploadDrive(r){
+  ultimoErroreInvio='';
   var ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
   var timer=ctrl?setTimeout(function(){ctrl.abort()},60000):null;
   try{
-    var opts={method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(r)};
+    var opts={method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(r,function(k,v){return k==='logo'?undefined:v})};
     if(ctrl)opts.signal=ctrl.signal;
     var res=await fetch(SCRIPT_URL,opts);
-    var d=await res.json();
+    var txt=await res.text();
+    var d;
+    try{d=JSON.parse(txt)}catch(pe){
+      ultimoErroreInvio='risposta non valida dal server (codice '+res.status+')'+(txt.charAt(0)==='<'?': ha restituito una pagina web invece dei dati':'');
+      return false;
+    }
     if(d.ok){return d.fileId||true}
+    ultimoErroreInvio='errore del server: '+(d.error||'sconosciuto');
     return false;
-  }catch(e){return false}
+  }catch(e){
+    ultimoErroreInvio=(e&&e.name==='AbortError')?'il server non ha risposto entro 60 secondi':'connessione assente o server non raggiungibile';
+    return false;
+  }
   finally{if(timer)clearTimeout(timer)}
 }
 function rimuoviLocale(id){
@@ -1449,7 +1491,7 @@ function mostraEsito(stato,r,firmato){
     ic.innerHTML='<div class="esito-icon">⚠️</div>';
     ti.textContent='Rapportino NON inviato';
     ti.className='esito-title err';
-    de.innerHTML=dettRap(r)+'Non è stato possibile inviarlo (connessione assente o server occupato).<br>Il rapportino è <b>salvato sul telefono</b>: riprova ora oppure più tardi dalla scheda Bozze/Inviati.';
+    de.innerHTML=dettRap(r)+'Non è stato possibile inviarlo (connessione assente o server occupato).<br>Il rapportino è <b>salvato sul telefono</b>: riprova ora oppure più tardi dalla scheda Bozze/Inviati.'+(ultimoErroreInvio?'<br><span style="font-size:11px;color:#999">Dettaglio: '+esc(ultimoErroreInvio)+'</span>':'');
     bt.innerHTML='<button class="btn btn-accent" onclick="riprovaInvio()">Riprova ora</button><button class="btn" onclick="chiudiEsito()">Chiudi</button>';
   }
   el('esito-overlay').classList.add('open');
@@ -1468,7 +1510,7 @@ async function eseguiInvio(r,firmato){
   try{res=await uploadDrive(r)}catch(e){res=false}
   invioInCorso=false;
   if(res){
-    r.syncedNas=true;r.syncedAt=new Date().toISOString();r.verificato=true;
+    r.syncedNas=true;r.syncedAt=new Date().toISOString();r.verificato=true;delete r.firme;
     if(res!==true)r.driveFileId=res;
     upsert(r);saveDB();updateCnt();
     if(editId===r.id){resetForm();showTab('nuovo');window.scrollTo(0,0)}
@@ -1567,7 +1609,7 @@ async function sincTutti(){
   for(var i=0;i<p.length;i++){
     var res=false;
     try{res=await uploadDrive(p[i])}catch(e){res=false}
-    if(res){p[i].syncedNas=true;p[i].syncedAt=new Date().toISOString();p[i].verificato=true;if(res!==true)p[i].driveFileId=res;ok++}else err++;
+    if(res){p[i].syncedNas=true;p[i].syncedAt=new Date().toISOString();p[i].verificato=true;delete p[i].firme;if(res!==true)p[i].driveFileId=res;ok++}else err++;
   }
   invioInCorso=false;
   saveDB();updateCnt();renderLista();renderSync();
@@ -1609,7 +1651,14 @@ function clearFirma(id){
 function getFirmaDataUrl(id){
   var canvas=el('canvas-'+id);
   if(!canvas||!padState[id]||padState[id].empty)return null;
-  return canvas.toDataURL('image/png');
+  var maxW=500;  // firma piu leggera: su telefono l'originale pesa centinaia di KB
+  if(canvas.width<=maxW)return canvas.toDataURL('image/png');
+  var nh=Math.round(canvas.height*maxW/canvas.width);
+  var tmp=document.createElement('canvas');tmp.width=maxW;tmp.height=nh;
+  var tctx=tmp.getContext('2d');
+  tctx.imageSmoothingEnabled=true;tctx.imageSmoothingQuality='high';
+  tctx.drawImage(canvas,0,0,maxW,nh);
+  return tmp.toDataURL('image/png');
 }
 function apriRaccoltaFirme(){
   if(!validaBase())return;
@@ -1726,13 +1775,9 @@ function filtraTecOverlay(q){
 }
 function selTecOverlay(val){
   var inp=el('f-tecnico');
-  if(inp)inp.value=val.toUpperCase();
+  if(inp)inp.value=nomeUp(val);
   chiudiTecOverlay();
-  var giaPresente=operai.some(function(o){return o.nome.toUpperCase()===val.toUpperCase();});
-  if(!giaPresente){
-    operai.unshift({id:Date.now()+Math.random(),nome:val.toUpperCase(),oreLav:0,oreStr:0,oreSab:0,oreFest:0,oreViag:0});
-    renderOp();
-  }
+  impostaResponsabile(val);
 }
 
 // ── TOAST CENTRATO ───────────────────────────────────
