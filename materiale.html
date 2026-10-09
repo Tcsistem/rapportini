@@ -62,7 +62,7 @@
     <form id="form">
       <h2>Dati commessa</h2>
       <div class="grid">
-        <div class="field"><label>Commessa <span class="req">*</span></label><input type="text" id="commessa" required placeholder="es. 00227cen25" pattern="\d{5}cen\d{2}" maxlength="10" oninput="this.value=this.value.toLowerCase()" title="Formato richiesto: 5 numeri + cen + 2 numeri anno (es. 00227cen25)"></div>
+        <div class="field"><label>Commessa <span class="req">*</span></label><input type="text" id="commessa" required placeholder="es. 00227cen25 oppure CIN0000MAG" pattern="[A-Za-z0-9]{6,15}" maxlength="15" oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'')" title="Solo lettere e numeri, da 6 a 15 caratteri (es. 00227cen25, CIN0000MAG, CESR20000A)"></div>
         <div class="field"><label>Cantiere / Ubicazione <span class="req">*</span></label><input type="text" id="cantiere" required></div>
         <div class="field"><label>Richiedente <span class="req">*</span></label><input type="text" id="richiedente" required></div>
         <div class="field"><label>Email richiedente</label><input type="email" id="emailRichiedente"></div>
@@ -173,13 +173,13 @@
       });
       if(!ok||!mat.length){ alertMsg('Compila almeno una riga (descrizione + quantità)','error'); return; }
 
-      // Validazione formato commessa
-      const commessaVal = commessa.value.trim().toLowerCase();
-      const commessaRegex = /^\d{5}cen\d{2}$/;
-      if(!commessaRegex.test(commessaVal)){
-        alertMsg('Formato commessa non valido. Usa: 5 numeri + cen + 2 numeri anno (es. 00227cen25)','error');
+      // Validazione formato commessa: vecchio formato (00227cen25) oppure codice alfanumerico (CIN0000MAG, CESR20000A...)
+      const commessaVal = commessa.value.trim();
+      if(!/^[A-Za-z0-9]{6,15}$/.test(commessaVal)){
+        alertMsg('Formato commessa non valido. Usa solo lettere e numeri, da 6 a 15 caratteri (es. 00227cen25 oppure CIN0000MAG)','error');
         commessa.focus(); return;
       }
+      commessa.value = /^\d{5}cen\d{2}$/i.test(commessaVal) ? commessaVal.toLowerCase() : commessaVal.toUpperCase();
 
       const dati={
         token: TOKEN,
