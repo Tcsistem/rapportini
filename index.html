@@ -644,6 +644,12 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
         <button class="btn" style="padding:6px 12px;font-size:12px" onclick="clearFirma('cliente')">✕ Cancella</button>
       </div>
     </div>
+    <div class="firma-pad-wrap">
+      <div class="firma-pad-label">Email del cliente (facoltativa)</div>
+      <input type="email" id="firma-email" inputmode="email" autocomplete="off" autocapitalize="none" placeholder="nome@azienda.it"
+             style="width:100%;padding:11px 12px;border:1px solid var(--border2);border-radius:8px;font-size:15px;background:var(--surface)">
+      <div style="font-size:12px;color:var(--text2);margin-top:6px">Se la inserisci, il cliente riceve subito il rapportino firmato, insieme all'amministrazione.</div>
+    </div>
     <div class="actions" style="margin-top:8px">
       <button class="btn" onclick="chiudiFirma()">Annulla</button>
       <button class="btn btn-blue" onclick="stampaPdfFirma()">🖨️ Stampa / PDF</button>
@@ -1872,6 +1878,7 @@ function apriRaccoltaFirmeEsegui(){
   firmaRapportino=getForm();
   clearFirma('tecnico');clearFirma('cliente');
   firmaCorrente={tecnico:null,cliente:null};
+  el('firma-email').value='';
   el('firma-overlay').classList.add('open');
   document.body.style.overflow='hidden';
   setTimeout(function(){initPad('tecnico');initPad('cliente')},100);
@@ -1893,11 +1900,14 @@ async function firmaESalva(){
   var fc=getFirmaDataUrl('cliente');
   if(!ft){showAlert('La firma del tecnico è obbligatoria.','err');return}
   if(!fc){showAlert('La firma del cliente è obbligatoria.','err');return}
+  var ec=(el('firma-email').value||'').trim().toLowerCase();
+  if(ec&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ec)){showAlert('L\'email del cliente non è valida: correggila oppure lasciala vuota.','err');el('firma-email').focus();return}
   firmaCorrente={tecnico:ft,cliente:fc};
   var r=firmaRapportino||getForm();
   if(!valida()||!operai.length){r=getForm();}
   r.firme={tecnico:ft,cliente:fc,dataFirma:new Date().toISOString()};
   r.firmato=true;
+  if(ec)r.emailCliente=ec;
   salvaMats();upsert(r);saveDB();updateCnt();editId=r.id;
   chiudiFirma();
   await eseguiInvio(r,true);
