@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Importa dati vecchi — TCS</title>
+<style>
+*{box-sizing:border-box}body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f5f4f0;margin:0;padding:20px;color:#1a1a18}
+.box{max-width:680px;margin:0 auto;background:#fff;border-radius:12px;padding:26px;box-shadow:0 1px 6px rgba(0,0,0,.08)}
+h1{font-size:20px;margin:0 0 6px}p{color:#555;font-size:14px;line-height:1.5}
+.file{margin:14px 0;padding:14px;border:2px dashed #ccc;border-radius:8px;background:#fafaf8}
+button{padding:12px 22px;font-size:15px;border:0;border-radius:6px;background:#1a1a18;color:#fff;cursor:pointer}
+button:disabled{opacity:.4;cursor:not-allowed}
+.bar{height:10px;background:#e8e6df;border-radius:6px;overflow:hidden;margin:14px 0 6px}.bar>div{height:100%;width:0;background:#2d6a2d;transition:width .2s}
+#log{font:12px/1.6 ui-monospace,Menlo,monospace;background:#1a1a18;color:#d8d8d0;padding:12px;border-radius:8px;max-height:280px;overflow:auto;white-space:pre-wrap;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>Importa i dati vecchi</h1>
+  <p>Carica qui i file <b>export_rapportini_sql.json</b> e/o <b>export_materiale_sql.json</b> creati da Google (vedi LEGGIMI, passo 7).
+  Si possono caricare insieme. L'importazione <b>non manda email</b> e si può rilanciare senza creare doppioni.</p>
+  <div class="file"><input type="file" id="files" accept=".json,application/json" multiple></div>
+  <button id="go" disabled>Importa</button>
+  <div class="bar"><div id="prog"></div></div>
+  <div id="stato" style="font-size:13px;color:#555"></div>
+  <div id="log"></div>
+</div>
+<script>
+// ═══ CONNESSIONE AL DATABASE TCS (Supabase) ═══════════════════════════
+const SB_URL = 'https://yidtynjmmxwzteylmhdw.supabase.co';     // es. https://abcdefgh.supabase.co
+const SB_KEY = 'sb_publishable_Xq9e_Fvz-iJTLJAQh7WV7A_Ghr2rvn4';      // chiave "anon" / "publishable" (è pubblica per progetto)
+const DASH_EMAIL = 'c.tecnico@tcs-impianti.it';   // utente creato in Supabase per la dashboard
+const APPS_SCRIPT_URL = SB_URL;                   // (compatibilità con le pagine del materiale)
+const TOKEN = '';
+const SCRIPT_URL = SB_URL;
+var sbSess = null;
+try { sbSess = JSON.parse(sessionStorage.getItem('sb_sess') || 'null'); } catch(e) {}
+function sbSalvaSess(s) { sbSess = s; try { if (s) sessionStorage.setItem('sb_sess', JSON.stringify(s)); else sessionStorage.removeItem('sb_sess'); } catch(e) {} }
+async function sbRaw(path, o) {
+  o = o || {};
+  var h = { 'apikey': SB_KEY, 'Content-Type': 'application/json' };
+  if (o.token) h['Authorization'] = 'Bearer ' + o.token;
+  else if (SB_KEY.indexOf('eyJ') === 0) h['Authorization'] = 'Bearer ' + SB_KEY;
+  for (var k in (o.headers || {})) h[k] = o.headers[k];
+  var res = await fetch(SB_URL + path, { method: o.method || 'GET', headers: h, signal: o.signal,
+    body: o.body !== undefined ? JSON.stringify(o.body) : undefined });
+  var txt = await res.text(), data = null;
+  try { data = txt ? JSON.parse(txt) : null; } catch(e) {}
+  if (!res.ok) {
+    var err = new Error((data && (data.message || data.msg || data.error_description || data.error)) || ('errore ' + res.status));
+    err.http = true; err.status = res.status; throw err;
+  }
+  return data;
+}
+async function sbToken() {
+  if (!sbSess) return null;
+  if (sbSess.expires_at - 60 > Date.now() / 1000) return sbSess.access_token;
+  try {
+    var d = await sbRaw('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: sbSess.refresh_token } });
+    sbSalvaSess({ access_token: d.access_token, refresh_token: d.refresh_token, expires_at: d.expires_at || (Date.now() / 1000 + d.expires_in) });
+    return sbSess.access_token;
+  } catch(e) { if (e.http) sbSalvaSess(null); throw e; }
+}
+async function sbLogin(password) {
+  var d = await sbRaw('/auth/v1/token?grant_type=password', { method: 'POST', body: { email: DASH_EMAIL, password: password } });
+  sbSalvaSess({ access_token: d.access_token, refresh_token: d.refresh_token, expires_at: d.expires_at || (Date.now() / 1000 + d.expires_in) });
+}
+async function sbApi(path, o) { o = o || {}; o.token = await sbToken(); return sbRaw(path, o); }
+function sbRpc(nome, args, o) { o = o || {}; o.method = 'POST'; o.body = args || {}; return sbApi('/rest/v1/rpc/' + nome, o); }
+var sbCfg = null;
+async function sbConfig() {
+  if (sbCfg) return sbCfg;
+  var righe = await sbApi('/rest/v1/impostazioni?select=chiave,valore'), c = {};
+  righe.forEach(function(r) { c[r.chiave] = r.valore; });
+  sbCfg = { azienda: c.azienda || '', piva: c.piva || '', tel: c.tel || '', email: c.email || '', logo: c.logo || '' };
+  return sbCfg;
+}
+async function sbOperai() {
+  var righe = await sbApi('/rest/v1/operai?select=nome&order=pos.asc,id.asc');
+  return righe.map(function(r) { return r.nome; });
+}
+function sbRiga(x) {
+  return { fileId: String(x.id), numero: x.numero || '', data: x.data || '', cliente: x.cliente || '', commessa: String(x.commessa || ''),
+    tecnico: x.tecnico || '', tipo: x.tipo || '', stato: x.stato || '0',
+    totLav: Number(x.tot_lav) || 0, totStr: Number(x.tot_str) || 0, totSab: Number(x.tot_sab) || 0,
+    totFest: Number(x.tot_fest) || 0, totViag: Number(x.tot_viag) || 0, firmato: !!x.firmato };
+}
+function sbCsv(line) {   // CSV con separatore ; e campi tra virgolette
+  var res = [], cur = '', q = false;
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (ch === '"') q = !q; else if (ch === ';' && !q) { res.push(cur); cur = ''; } else cur += ch;
+  }
+  res.push(cur); return res;
+}
+// Protegge una pagina riservata: se non c'è il login chiede la password, poi avvia la pagina
+function sbProteggi(avvia) {
+  if (sbSess) { avvia(); return; }
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:#f5f4f0;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:sans-serif';
+  ov.innerHTML = '<div style="background:#fff;padding:28px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.12);width:min(340px,90vw)"><h3 style="margin:0 0 14px">Accesso responsabile</h3>' +
+    '<input type="password" id="sb-pw" placeholder="Password" style="width:100%;padding:11px;font-size:16px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box">' +
+    '<button id="sb-go" style="width:100%;margin-top:12px;padding:11px;font-size:15px;border:0;border-radius:6px;background:#1a1a18;color:#fff;cursor:pointer">Accedi</button>' +
+    '<div id="sb-er" style="color:#a22;font-size:13px;margin-top:10px;display:none"></div></div>';
+  document.body.appendChild(ov);
+  var pw = ov.querySelector('#sb-pw'), er = ov.querySelector('#sb-er');
+  async function vai() {
+    try { await sbLogin(pw.value); ov.remove(); avvia(); }
+    catch (e) { er.textContent = e.http ? 'Password non corretta.' : 'Connessione non riuscita. Riprova.'; er.style.display = 'block'; pw.value = ''; }
+  }
+  ov.querySelector('#sb-go').onclick = vai;
+  pw.addEventListener('keydown', function(e) { if (e.key === 'Enter') vai(); });
+  pw.focus();
+}
+async function sbMail(corpo) {
+  var tok = await sbToken();
+  var h = { 'apikey': SB_KEY, 'Content-Type': 'application/json' };
+  if (tok) h['Authorization'] = 'Bearer ' + tok;
+  var res = await fetch(SB_URL + '/functions/v1/rapportini-mail', { method: 'POST', headers: h, body: JSON.stringify(corpo) });
+  var d = null; try { d = await res.json(); } catch(e) {}
+  if (!res.ok || !d || !d.ok) { var er = new Error((d && d.error) || ('errore ' + res.status)); er.http = true; throw er; }
+  return d;
+}
+// Gestisce le richieste dell'app come faceva il vecchio server: stesse azioni, stesse risposte.
+async function sbGestisci(url, opts) {
+  var q = new URLSearchParams(url.indexOf('?') >= 0 ? url.substring(url.indexOf('?') + 1) : '');
+  var azione = q.get('action') || '', post = null;
+  if (opts && opts.body) { try { post = JSON.parse(opts.body); } catch(e) {} }
+  var sig = opts && opts.signal;
+  if (post) {
+    if (post.action) {   // ── richiesta materiale
+      function sbMat(x) {
+        var luogo = String(x.luogo || 'SEDE').trim().toUpperCase();
+        return { riga: x.id, Timestamp: x.created_at, Commessa: x.commessa || '', Cantiere: x.cantiere || '', Richiedente: x.richiedente || '',
+          Email: x.email || '', Urgenza: x.urgenza || 'NORMALE', 'Consegna richiesta': x.consegna_richiesta || '', 'Luogo Consegna': luogo, LuogoConsegna: luogo,
+          'N. articoli': x.n_articoli || 0, Dettagli: x.dettagli || '', Note: x.note || '', Stato: x.stato || 'Da evadere' };
+      }
+      if (post.action === 'listaPerNome') {
+        var mie = await sbRpc('mat_per_nome', { nome: post.richiedente || '' }, { signal: sig });
+        return { success: true, dati: (mie || []).map(sbMat) };
+      }
+      if (post.action === 'lista') {
+        var tutte = [], d0 = 0;
+        while (true) {
+          var pg = await sbApi('/rest/v1/richieste_materiale?select=*&order=created_at.desc', { headers: { 'Range-Unit': 'items', 'Range': d0 + '-' + (d0 + 999) } });
+          tutte = tutte.concat(pg); if (pg.length < 1000) break; d0 += 1000;
+        }
+        return { success: true, dati: tutte.map(sbMat) };
+      }
+      if (post.action === 'updateStato') {
+        var up = await sbApi('/rest/v1/richieste_materiale?id=eq.' + parseInt(post.riga, 10), { method: 'PATCH', body: { stato: post.stato }, headers: { 'Prefer': 'return=representation' } });
+        return up && up.length ? { success: true } : { success: false, message: 'Richiesta non trovata o accesso non autorizzato' };
+      }
+      if (post.action === 'elimina') {
+        var dm = await sbApi('/rest/v1/richieste_materiale?id=eq.' + parseInt(post.riga, 10), { method: 'DELETE', headers: { 'Prefer': 'return=representation' } });
+        return dm && dm.length ? { success: true } : { success: false, message: 'Richiesta non trovata o accesso non autorizzato' };
+      }
+      return { success: false, message: 'azione sconosciuta' };
+    }
+    if (post.materiali && post.commessa !== undefined && !post.numero) {   // nuova richiesta materiale
+      return await sbRpc('mat_invia', { d: post }, { signal: sig });
+    }
+    if (post._action === 'importaGbCsv') {   // elenco servizi GeoBadge da CSV (separatore ;)
+      var righe = String(post.csv || '').split(/\r?\n/).filter(function(r) { return r.trim(); }), out = [];
+      for (var gi = 1; gi < righe.length; gi++) {
+        var cols = sbCsv(righe[gi]); if (cols.length < 4) continue;
+        out.push({ azienda: cols[0], cliente: cols[1], descrizione: cols[2], numero: cols[3] });
+      }
+      var cnt = await sbRpc('gb_importa', { righe: out });
+      return { ok: true, count: cnt };
+    }
+    if (post._action === 'saveOperai') { await sbRpc('rap_salva_operai', { nomi: post.operai || [] }); return { ok: true }; }
+    if (post._action === 'elimina') {
+      await sbApi('/rest/v1/rapportini?id=eq.' + encodeURIComponent(String(post.fileId || '').replace(/\D/g, '')), { method: 'DELETE' });
+      return { ok: true };
+    }
+    if (post._action === 'verifica') {
+      var pres = await sbRpc('rap_verifica', { numeri: post.numeri || [] }, { signal: sig });
+      return { ok: true, rapportini: (pres || []).map(function(n) { return { numero: n }; }) };
+    }
+    if (post._action === 'sendMail') { await sbMail({ tipo: 'cliente', to: post.to, rapportino: post.rapportino }); return { ok: true }; }
+    if (post._action === 'sendIdea') { await sbMail({ tipo: 'idea', nome: post.nome, testo: post.testo }); return { ok: true }; }
+    return await sbRpc('rap_salva', { r: post }, { signal: sig });
+  }
+  if (azione === 'gbLocale') {
+    var gb = [], g0 = 0;
+    while (true) {
+      var gp = await sbApi('/rest/v1/gb_servizi?select=azienda,cliente,descrizione,numero&order=id.asc', { headers: { 'Range-Unit': 'items', 'Range': g0 + '-' + (g0 + 999) } });
+      gb = gb.concat(gp); if (gp.length < 1000) break; g0 += 1000;
+    }
+    return { ok: true, servizi: gb };
+  }
+  if (azione === 'ping') { await sbConfig(); return { ok: true, msg: 'Database collegato' }; }
+  if (azione === 'config') { var c = await sbConfig(); var o = await sbOperai(); return Object.assign({ ok: true, operai: o }, c); }
+  if (azione === 'nextnum') { return { ok: true, numero: await sbRpc('rap_next_numero') }; }
+  if (azione === 'operai') { return { ok: true, operai: await sbOperai() }; }
+  if (azione === 'reindex') { return { ok: true, msg: 'Non serve: i dati sono in un database SQL.' }; }
+  if (azione === 'list') {
+    var tutti = [], da = 0, passo = 1000;
+    while (true) {
+      var pag = await sbApi('/rest/v1/rapportini?select=id,numero,data,cliente,commessa,tecnico,tipo,stato,tot_lav,tot_str,tot_sab,tot_fest,tot_viag,firmato&order=data.desc.nullslast,id.desc',
+        { headers: { 'Range-Unit': 'items', 'Range': da + '-' + (da + passo - 1) } });
+      tutti = tutti.concat(pag);
+      if (pag.length < passo) break;
+      da += passo;
+    }
+    return { ok: true, rapportini: tutti.map(sbRiga) };
+  }
+  if (azione === 'get') {
+    var id = String(q.get('fileId') || '').replace(/\D/g, '');
+    if (!id) return { ok: false, error: 'fileId non valido' };
+    var rr = await sbApi('/rest/v1/rapportini?id=eq.' + id + '&select=*');
+    if (!rr.length) return { ok: false, error: 'Rapportino non trovato' };
+    var x = rr[0], cf = await sbConfig();
+    return { ok: true, rapportino: Object.assign({ id: x.client_id || String(x.id), numero: x.numero || '', data: x.data || '', cliente: x.cliente || '',
+      commessa: String(x.commessa || ''), indirizzo: x.indirizzo || '', tecnico: x.tecnico || '', tipo: x.tipo || '', stato: x.stato || '0',
+      descrizione: x.descrizione || '', note: x.note || '', totLav: Number(x.tot_lav) || 0, totStr: Number(x.tot_str) || 0, totSab: Number(x.tot_sab) || 0,
+      totFest: Number(x.tot_fest) || 0, totViag: Number(x.tot_viag) || 0, materiali: x.materiali || [], operai: x.operai || [], firme: x.firme || {},
+      firmato: !!x.firmato, syncedAt: x.synced_at || '', createdAt: x.created_at || '', driveFileId: String(x.id) }, cf) };
+  }
+  return { ok: false, error: 'azione sconosciuta' };
+}
+// Sostituisce fetch(SCRIPT_URL…) nel resto dell'app: restituisce un oggetto "come una risposta di rete"
+async function apiFetch(url, opts) {
+  var d;
+  try { d = await sbGestisci(url, opts); }
+  catch(e) { if (e && e.http) d = { ok: false, error: e.message }; else throw e; }
+  var txt = JSON.stringify(d);
+  return { ok: true, status: 200, text: async function() { return txt; }, json: async function() { return d; } };
+}
+// ═══════════════════════════════════════════════════════════════════
+
+function el(i){return document.getElementById(i)}
+function log(m){var l=el('log');l.textContent+=m+'\n';l.scrollTop=l.scrollHeight}
+// "2 m - cavo [A1] | 5 pz - presa"  →  [{quantita,unita,descrizione,codice}]
+function parseDettagli(s){
+  return String(s||'').split(' | ').map(function(x){x=x.trim();if(!x)return null;
+    var m=x.match(/^(\S+)\s(\S*)\s-\s([\s\S]*?)(?:\s\[([^\]]*)\])?$/);
+    return m?{quantita:m[1],unita:m[2],descrizione:m[3],codice:m[4]||'',note:''}:{quantita:'',unita:'',descrizione:x,codice:'',note:''};
+  }).filter(Boolean);
+}
+async function conPool(lista,n,fn){var i=0,fatti=0;await Promise.all(Array.from({length:n},async function(){
+  while(i<lista.length){var k=i++;await fn(lista[k],k);fatti++;el('prog').style.width=(100*fatti/lista.length)+'%'}}))}
+var dati={rapportini:null,operai:null,gbServizi:null,materiale:null};
+el('files').addEventListener('change',async function(e){
+  dati={rapportini:null,operai:null,gbServizi:null,materiale:null};
+  for(var f of e.target.files){
+    try{var j=JSON.parse(await f.text());
+      ['rapportini','operai','gbServizi','materiale'].forEach(function(k){if(Array.isArray(j[k]))dati[k]=j[k]});
+      log('Letto '+f.name)}catch(er){log('ERRORE nel file '+f.name+': '+er.message)}
+  }
+  var r=[];if(dati.rapportini)r.push(dati.rapportini.length+' rapportini');if(dati.operai)r.push(dati.operai.length+' operai');
+  if(dati.gbServizi)r.push(dati.gbServizi.length+' servizi GeoBadge');if(dati.materiale)r.push(dati.materiale.length+' richieste materiale');
+  el('stato').textContent=r.length?'Pronti da importare: '+r.join(', '):'Nessun dato riconosciuto nei file.';
+  el('go').disabled=!r.length;
+});
+async function importa(){
+  el('go').disabled=true;var errori=0;
+  try{
+    if(dati.operai&&dati.operai.length){await sbRpc('rap_salva_operai',{nomi:dati.operai});log('✓ Operai: '+dati.operai.length)}
+    if(dati.gbServizi&&dati.gbServizi.length){var n=await sbRpc('gb_importa',{righe:dati.gbServizi});log('✓ Servizi GeoBadge: '+n)}
+    if(dati.rapportini){
+      log('Importo '+dati.rapportini.length+' rapportini…');var max=0;
+      await conPool(dati.rapportini,3,async function(r){
+        try{await sbRpc('rap_importa',{r:r});var m=String(r.numero||'').match(/-(\d+)$/);if(m)max=Math.max(max,parseInt(m[1],10))}
+        catch(er){errori++;log('✗ rapportino '+(r.numero||r.id)+': '+er.message)}});
+      if(max){var c=await sbRpc('rap_imposta_contatore',{n:max});log('✓ Numerazione: il prossimo rapportino sarà il n. '+(c+1))}
+      log('✓ Rapportini importati: '+(dati.rapportini.length-errori));
+    }
+    if(dati.materiale){
+      log('Importo '+dati.materiale.length+' richieste materiale…');var e2=0;
+      await conPool(dati.materiale,3,async function(m){
+        try{m.materiali=parseDettagli(m.dettagli);await sbRpc('mat_importa',{m:m})}
+        catch(er){e2++;log('✗ richiesta '+(m.commessa||'')+': '+er.message)}});
+      errori+=e2;log('✓ Richieste materiale importate: '+(dati.materiale.length-e2));
+    }
+    log(errori?'FINITO con '+errori+' errori (vedi sopra). Puoi rilanciare: i dati già importati non si duplicano.':'FINITO senza errori.');
+  }catch(er){log('✗ STOP: '+er.message)}
+  el('go').disabled=false;
+}
+el('go').onclick=importa;
+sbProteggi(function(){log('Accesso effettuato. Scegli i file.')});
+</script>
+</body>
+</html>
