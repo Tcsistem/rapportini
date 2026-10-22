@@ -148,9 +148,7 @@ tr:last-child td{border-bottom:none}
       <div class="filter-group"><label>Tecnico</label><input type="text" id="f-tecnico" placeholder="Tutti..."></div>
       <div class="filter-group"><label>Cliente</label><input type="text" id="f-cliente" placeholder="Tutti..."></div>
       <div class="filter-group"><label>Commessa</label><input type="text" id="f-commessa" placeholder="Tutti..."></div>
-      <div class="filter-group" style="flex:none;min-width:130px"><label>Stato</label>
-        <select id="f-stato"><option value="">Tutti</option><option value="100">Completati</option><option value="&lt;100">In corso</option></select>
-      </div>
+      <div class="filter-group"><label>Operaio</label><input type="text" id="f-operaio" placeholder="Tutti..."></div>
       <div style="display:flex;gap:8px;align-items:flex-end">
         <button class="btn" onclick="aggiornaFiltri()">Filtra</button>
         <button class="btn" onclick="resetFiltri()">Reset</button>
@@ -331,7 +329,8 @@ function sbRiga(x) {
   return { fileId: String(x.id), numero: x.numero || '', data: x.data || '', cliente: x.cliente || '', commessa: String(x.commessa || ''),
     tecnico: x.tecnico || '', tipo: x.tipo || '', stato: x.stato || '0',
     totLav: Number(x.tot_lav) || 0, totStr: Number(x.tot_str) || 0, totSab: Number(x.tot_sab) || 0,
-    totFest: Number(x.tot_fest) || 0, totViag: Number(x.tot_viag) || 0, firmato: !!x.firmato };
+    totFest: Number(x.tot_fest) || 0, totViag: Number(x.tot_viag) || 0, firmato: !!x.firmato,
+    operaiNomi: (Array.isArray(x.operai) ? x.operai : []).map(function (o) { return String((o && o.nome) || ''); }).join(' | ') };
 }
 function sbCsv(line) {   // CSV con separatore ; e campi tra virgolette
   var res = [], cur = '', q = false;
@@ -446,7 +445,7 @@ async function sbGestisci(url, opts) {
   if (azione === 'list') {
     var tutti = [], da = 0, passo = 1000;
     while (true) {
-      var pag = await sbApi('/rest/v1/rapportini?select=id,numero,data,cliente,commessa,tecnico,tipo,stato,tot_lav,tot_str,tot_sab,tot_fest,tot_viag,firmato&order=data.desc.nullslast,id.desc',
+      var pag = await sbApi('/rest/v1/rapportini?select=id,numero,data,cliente,commessa,tecnico,tipo,stato,tot_lav,tot_str,tot_sab,tot_fest,tot_viag,firmato,operai&order=data.desc.nullslast,id.desc',
         { headers: { 'Range-Unit': 'items', 'Range': da + '-' + (da + passo - 1) } });
       tutti = tutti.concat(pag);
       if (pag.length < passo) break;
@@ -503,8 +502,8 @@ function showAlert(msg,type){var a=el('alert');a.className='alert alert-'+type+'
 function avviaAutoRefresh(){if(refreshTimer)clearInterval(refreshTimer);if(countdownTimer)clearInterval(countdownTimer);secondiRimasti=REFRESH_MIN*60;aggiornaCountdown();countdownTimer=setInterval(function(){secondiRimasti--;if(secondiRimasti<0)secondiRimasti=REFRESH_MIN*60;aggiornaCountdown()},1000);refreshTimer=setInterval(function(){secondiRimasti=REFRESH_MIN*60;caricaDati()},REFRESH_MIN*60*1000);}
 function aggiornaCountdown(){var ore=Math.floor(secondiRimasti/3600),min=Math.floor((secondiRimasti%3600)/60),sec=secondiRimasti%60;var l=el('refresh-countdown');if(l)l.textContent='Agg. in '+(ore>0?ore+'h ':'')+String(min).padStart(2,'0')+'m '+String(sec).padStart(2,'0')+'s';}
 async function caricaDati(){el('conn-dot').className='conn-dot spin';el('conn-lbl').textContent='Caricamento...';try{var res=await apiFetch(SCRIPT_URL+'?action=list&_dc='+Date.now());var d=await res.json();if(!d.ok)throw new Error(d.error);tutti=d.rapportini||[];el('conn-dot').className='conn-dot ok';el('conn-lbl').textContent='Connesso — '+tutti.length+' rapportini';aggiornaFiltri();}catch(e){el('conn-dot').className='conn-dot err';el('conn-lbl').textContent='Errore';showAlert('Errore: '+e.message,'err')}}
-function resetFiltri(){['f-da','f-a','f-tecnico','f-cliente','f-commessa'].forEach(function(id){el(id).value=''});el('f-stato').value='';aggiornaFiltri()}
-function aggiornaFiltri(){var da=el('f-da').value,a=el('f-a').value;var te=el('f-tecnico').value.toLowerCase().trim();var cl=el('f-cliente').value.toLowerCase().trim();var co=el('f-commessa').value.toLowerCase().trim();var st=el('f-stato').value;filtrati=tutti.filter(function(r){if(da&&r.data&&r.data<da)return false;if(a&&r.data&&r.data>a)return false;if(te&&!(r.tecnico||'').toLowerCase().includes(te))return false;if(cl&&!(r.cliente||'').toLowerCase().includes(cl))return false;if(co&&!(r.commessa||'').toLowerCase().includes(co))return false;if(st==='100'&&parseInt(r.stato)!==100)return false;if(st==='<100'&&parseInt(r.stato)>=100)return false;return true;});aggiornaKPI();aggiornaGrafici();aggiornaTabella();}
+function resetFiltri(){['f-da','f-a','f-tecnico','f-cliente','f-commessa','f-operaio'].forEach(function(id){el(id).value=''});aggiornaFiltri()}
+function aggiornaFiltri(){var da=el('f-da').value,a=el('f-a').value;var te=el('f-tecnico').value.toLowerCase().trim();var cl=el('f-cliente').value.toLowerCase().trim();var co=el('f-commessa').value.toLowerCase().trim();var op=el('f-operaio').value.toLowerCase().trim();filtrati=tutti.filter(function(r){if(da&&r.data&&r.data<da)return false;if(a&&r.data&&r.data>a)return false;if(te&&!(r.tecnico||'').toLowerCase().includes(te))return false;if(cl&&!(r.cliente||'').toLowerCase().includes(cl))return false;if(co&&!(r.commessa||'').toLowerCase().includes(co))return false;if(op&&!(r.operaiNomi||'').toLowerCase().includes(op))return false;return true;});aggiornaKPI();aggiornaGrafici();aggiornaTabella();}
 function aggiornaKPI(){var tL=filtrati.reduce(function(s,r){return s+(r.totLav||0)},0);var tV=filtrati.reduce(function(s,r){return s+(r.totViag||0)},0);var tS=filtrati.reduce(function(s,r){return s+(r.totStr||0)},0);el('kpi-tot').textContent=filtrati.length;el('kpi-lav').textContent=fmt(tL);el('kpi-viag').textContent=fmt(tV);el('kpi-str').textContent=fmt(tS);
   var tSab=filtrati.reduce(function(s,r){return s+(r.totSab||0)},0);
   var tFest=filtrati.reduce(function(s,r){return s+(r.totFest||0)},0);var tec=filtrati.map(function(r){return r.tecnico}).filter(function(v,i,a){return v&&a.indexOf(v)===i});el('kpi-tot-sub').textContent=tec.length+' tecnici';el('kpi-lav-sub').textContent=fmt(tL/(filtrati.length||1))+'h media/rapportino';el('kpi-viag-sub').textContent=fmt(tV/(filtrati.length||1))+'h media/rapportino';el('kpi-str-sub').textContent=fmt(tS/(filtrati.length||1))+'h media/rapportino';}
